@@ -10,12 +10,18 @@ char* scopes[50];
 
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
+%token INT
+%token FLOAT
+%token CHAR
+%token STRING
 %token declare
 %token While
 %token Do_While
 %token logical_OP
-%token <int_num> integer
-%token <float_num> Float
+%token <int_num> integer_value
+%token <float_num> Float_value
+%token <id>Char_value;
+%token <string>String_value;
 %token <string> identifier
 %token <string> comparison_OP
 //%type <int_num> line phrase
@@ -51,7 +57,10 @@ end_block  : '}'		{
 				}
 	;
 	;
-term	: integer {;} | Float {;}
+term	: integer_value {;} 
+		  | Float_value {;}
+		  | Char_value{;}
+		  | String_value{;}
 	;
 logical_exp: identifier comparison_OP term {printf("logical expression ");}
 	
