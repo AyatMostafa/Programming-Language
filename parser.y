@@ -14,6 +14,7 @@ char* scopes[50];
 %token FLOAT
 %token CHAR
 %token STRING
+%token CONST
 %token declare
 %token While
 %token Do_While
@@ -44,6 +45,8 @@ line	: phrase 		{;}
 	| line end_block	{;}
 //	| logical_exp';'	{;}
 //	| line logical_exp';'	{;}
+	| func {;}
+
 	;
 phrase  : declare';'            {printf("phrase ");}
         ;
@@ -62,7 +65,14 @@ term	: integer_value {;}
 		  | Char_value{;}
 		  | String_value{;}
 	;
-logical_exp: identifier comparison_OP term {printf("logical expression ");}
+type : CHAR
+     |INT
+	 |FLOAT
+	 |STRING
+	 ;
+ func : type identifier'('type identifier')' start_block  end_block{printf("function");} 
+
+logical_exp : identifier comparison_OP term {printf("logical expression ");}
 	
 	;
 while	: While '(' logical_exp ')' start_block {printf("whileLoop "); scopes[level] = "while";}

@@ -8,6 +8,7 @@ int yylex();
 "float"             {return FLOAT;}
 "char"              {return CHAR;}
 "string"            {return STRING;}
+"const"             {return CONST;}
 "declare"			{return declare;}
 "while"				{return While;}
 "do"				{return Do_While;}
