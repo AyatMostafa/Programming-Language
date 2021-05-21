@@ -9,9 +9,14 @@ int yylex();
 "char"              {return CHAR;}
 "string"            {return STRING;}
 "const"             {return CONST;}
+"bool"              {return BOOL;}
 "declare"			{return declare;}
 "while"				{return While;}
 "do"				{return Do_While;}
+"false"             {return FALSE;}
+"true"              {return TRUE;}
+[;]                 {return SEMICOLON;}
+[=]                 {return ASSIGN;}
 [+-]?[0-9]+			         {return integer_value;}
 [+-]?([0-9]*[.])?[0-9]+		 {return Float_value;}
 ['][a-zA-Z][']               {return Char_value;}

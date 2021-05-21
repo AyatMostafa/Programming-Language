@@ -14,8 +14,13 @@ char* scopes[50];
 %token FLOAT
 %token CHAR
 %token STRING
+%token BOOL
 %token CONST
+%token FALSE
+%token TRUE
 %token declare
+%token SEMICOLON
+%token ASSIGN
 %token While
 %token Do_While
 %token logical_OP
@@ -46,6 +51,9 @@ line	: phrase 		{;}
 //	| logical_exp';'	{;}
 //	| line logical_exp';'	{;}
 	| func {;}
+	|constant{;}
+	|variable{;}
+	|declaration{;}
 
 	;
 phrase  : declare';'            {printf("phrase ");}
@@ -64,14 +72,19 @@ term	: integer_value {;}
 		  | Float_value {;}
 		  | Char_value{;}
 		  | String_value{;}
+		  |FALSE{;}
+		  |TRUE {;}
 	;
 type : CHAR
      |INT
 	 |FLOAT
 	 |STRING
+	 |BOOL
 	 ;
  func : type identifier'('type identifier')' start_block  end_block{printf("function");} 
-
+constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment");}
+variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment");}
+declaration : type identifier SEMICOLON {printf("declaration");}
 logical_exp : identifier comparison_OP term {printf("logical expression ");}
 	
 	;
