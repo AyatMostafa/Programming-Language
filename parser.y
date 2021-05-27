@@ -20,6 +20,10 @@ char* scopes[50];
 %token TRUE
 %token declare
 %token SEMICOLON
+%token COMMA
+%token OPENBRACKET
+%token CLOSEBRACKET
+%token RET
 %token ASSIGN
 %token While
 %token Do_While
@@ -54,6 +58,7 @@ line	: phrase 		{;}
 	|constant{;}
 	|variable{;}
 	|declaration{;}
+	|definition{;}
 
 	;
 phrase  : declare';'            {printf("phrase ");}
@@ -81,10 +86,18 @@ type : CHAR
 	 |STRING
 	 |BOOL
 	 ;
- func : type identifier'('type identifier')' start_block  end_block{printf("function");} 
+argList: type identifier cont
+        |
+;
+cont: COMMA type identifier cont
+     |
+;
+
+func : type identifier OPENBRACKET argList CLOSEBRACKET start_block line end_block{printf("function");} 
 constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment");}
 variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment");}
 declaration : type identifier SEMICOLON {printf("declaration");}
+definition : identifier ASSIGN term SEMICOLON {printf("definition");}
 logical_exp : identifier comparison_OP term {printf("logical expression ");}
 	
 	;

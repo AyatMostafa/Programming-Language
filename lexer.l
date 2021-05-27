@@ -15,8 +15,12 @@ int yylex();
 "do"				{return Do_While;}
 "false"             {return FALSE;}
 "true"              {return TRUE;}
+"return"            {return RET; }
 [;]                 {return SEMICOLON;}
+[,]                 {return COMMA;}
 [=]                 {return ASSIGN;}
+[(]                 {return OPENBRACKET;}
+[)]                 {return CLOSEBRACKET;}
 [+-]?[0-9]+			         {return integer_value;}
 [+-]?([0-9]*[.])?[0-9]+		 {return Float_value;}
 ['][a-zA-Z][']               {return Char_value;}
