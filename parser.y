@@ -87,14 +87,15 @@ line	: phrase 		{;}
 	|
 
 	;
-phrase  : declare';'            {printf("phrase ");}
+
+phrase  : declare';'            {printf("phrase \n");}
         ;
-//block	: start_block line end_block	{printf("block finished ");}
+//block	: start_block line end_block	{printf("block finished \n");}
 	;
-start_block: '{'		{level += 1; printf("start block %d ", level);}
+start_block: '{'		{level += 1; printf("start block %d \n", level);}
 	;
 end_block  : '}'		{
-					if (level == 0) yyerror("start scope first!");
+					if (level == 0) yyerror("start scope first!\n");
 				 	else {printf("end block %d ", level); level -= 1;}
 				}
 	;
@@ -119,24 +120,25 @@ argList: type identifier cont
 cont: COMMA type identifier cont
      |
 ;
+stmtlist:  line 
+          | stmtlist line ;	
+
+func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET term SEMICOLON end_block{printf("function\n");} 
+constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment\n");}
+variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment\n");}
+declaration : type identifier SEMICOLON {printf("declaration\n");}
+definition : identifier ASSIGN term SEMICOLON {printf("definition\n");} | identifier ASSIGN identifier SEMICOLON
+logical_exp : identifier comparison_OP term {printf("logical expression \n");}
 
 
-func : type identifier OPENBRACKET argList CLOSEBRACKET start_block line RET term SEMICOLON end_block{printf("function");} 
-constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment");}
-variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment");}
-declaration : type identifier SEMICOLON {printf("declaration");}
-definition : identifier ASSIGN term SEMICOLON {printf("definition");} | identifier ASSIGN identifier SEMICOLON
-logical_exp : identifier comparison_OP term {printf("logical expression ");}
 
-
-
-if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET start_block  {printf("if condition ");} line end_block
-ifExpr : cond | cond IfFiller ifExpr {printf("expression");}
-cond :  identifier comparison_OP identifier | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition ");}
+if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET start_block  {printf("if condition\n");} line end_block
+ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
+cond :  identifier comparison_OP identifier | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
 bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET | OPENBRACKET ifExpr CLOSEBRACKET 
 notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | NOT OPENBRACKET logical_exp CLOSEBRACKET | NOT OPENBRACKET term CLOSEBRACKET | NOT OPENBRACKET identifier CLOSEBRACKET | NOT OPENBRACKET ifExpr CLOSEBRACKET
 elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("else if condition ");}
-else : ELSE start_block line end_block{printf("else");}
+else : ELSE start_block line end_block{printf("else\n");}
 
 switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
 cases : case | case cases
@@ -144,9 +146,9 @@ case : CASE identifier COLON line BREAK SEMICOLON | CASE term COLON line BREAK S
 
 
 	;
-while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop "); scopes[level] = "while";} 
+while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n"); scopes[level] = "while";} 
 	;
-dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block SEMICOLON {printf("dowhile ");}
+dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block SEMICOLON {printf("dowhile \n");}
 	;
 
 //-------------------- FOR Rule ---------------
