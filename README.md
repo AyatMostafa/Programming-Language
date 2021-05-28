@@ -66,6 +66,7 @@ for ( int i = 0; i < n; i = i + 1 )
 while(/*any_logical_exp*/)
 {
 	line 1
+	
 	line 2
 	....
 }
@@ -75,6 +76,7 @@ while(/*any_logical_exp*/)
 do 
 {
 	line 1
+	
 	line 2
 	....
 }
@@ -82,15 +84,17 @@ while(/*any_logical_exp*/);
 
 # Block Structures
 
-/* any number of nested blocks, each defined with a start and an end blocks */
+/* any number of nested blocks, each defined with a start and an end curly braces */
 {
 	line 1
+	
 	....
 }
 {
 	line 1;
 	{
 		line 2
+		
 		line 3
 		....
 	}
