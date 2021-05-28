@@ -35,3 +35,32 @@ else {
      ...
      
 }
+
+
+# Switch - Case statement
+
+switch ( identifier ) {
+
+     case number/identifier/string :
+     
+          line 1
+
+          line 2
+
+          ....
+
+          break;
+          
+      .....
+      
+      default :
+      
+          line 1
+
+          line 2
+
+          ....
+
+          break;
+          
+}
