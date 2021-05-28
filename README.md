@@ -5,11 +5,8 @@ A programming language is designed and implemented using the Lex and Yacc compil
 | Team members | Sec  | BN  |
 | ------- | --- | --- |
 | Ahmed Hamdy | 1 | 1 |
-| ------- | --- | --- |
 | Ayat Mostafa | 1 | 10 |
-| ------- | --- | --- |
 | Mohamed Abdullah | 2 | 16 |
-| ------- | --- | --- |
 | Nada Adel | 2 | 27 |
 
 # If - Else statement
