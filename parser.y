@@ -48,50 +48,51 @@ char* scopes[50];
 %token <string> comparison_OP
 %token INC
 %token DEC
+%token SHL
+%token SHR
 
-
+%type<location> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
 //%type <int_num> line phrase
 
 %%
 
 /* descriptions of expected inputs corresponding actions (in C) */
 
-line	: phrase 		{;}
-	| line phrase		{;}
-	| while			{;}
-	| line while		{;}
-	| dowhile		{;}
-	| line dowhile		{;}
-//	| block			{;}
-//	| line block		{;}
-	| start_block		{;}
-	| line start_block	{;}
-	| end_block		{;}
-	| line end_block	{;}
-//	| logical_exp';'	{;}
-//	| line logical_exp';'	{;}
-	
-	|if {;}
-	|else {;}
-	|elseIf {;}
-	|line if {;}
-	|line else {;}
-	|line elseIf {;} 
-	|switch {;}
-	|case {;}
-	|line switch {;}
-	|line case {;}
-	| for {;}
-	| line for {;}
-	|
-
+line	: phrase 		    {;}
+		| line phrase		{;}
+		| while			    {;}
+		| line while		{;}
+		| dowhile		    {;}
+		| line dowhile		{;}
+	//	| block			    {;}
+	//	| line block		{;}
+		| start_block		{;}
+		| line start_block	{;}
+		| end_block		    {;}
+		| line end_block	{;}
+	//	| logical_exp';'	{;}
+	//	| line logical_exp';'	{;}
+		
+		|if {;}
+		|else {;}
+		|elseIf {;}
+		|line if {;}
+		|line else {;}
+		|line elseIf {;} 
+		|switch {;}
+		|case {;}
+		|line switch {;}
+		|line case {;}
+		| for {;}
+		| line for {;}
+		| expression {;}
 	;
 
-phrase  :constant{;}
-	|variable{;}
-	|declaration{;}
-	|definition{;}
-	| func {;}
+phrase  :  constant{;}
+	    |  variable{;}
+	    |  declaration{;}
+	    |  definition{;}
+	    |  func {;}
         ;
 //block	: start_block line end_block	{printf("block finished \n");}
 	;
@@ -157,20 +158,30 @@ dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRAC
 
 //----------------- mathematical and logical expression -----------
 expression: expression1 | expression2 | expression3
+	;
 
-expression1:  expression '=' expression
+expression1:  expression ASSIGN expression
 			| expression '+' expression
 			| expression '-' expression
 			| expression '*' expression
 			| expression '/' expression
+			| expression '%' expression
+			| expression '&' expression
+			| expression '|' expression
+			| expression '^' expression
 			| expression IfFiller expression
 			| expression comparison_OP expression
+			| expression SHL expression
+			| expression SHR expression
     ;
 
 expression2:   INC expression3
 			|  expression3 INC
 			|  DEC expression3
 			|  expression3 DEC
+			|  '~' expression
+			|  '!' expression
+			|  '-' expression
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET
