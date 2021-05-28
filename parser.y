@@ -16,6 +16,7 @@ char* scopes[50];
 %token VOID
 %token IF
 %token ELSE
+%token FOR
 
 
 %token STRING
@@ -81,6 +82,8 @@ line	: phrase 		{;}
 	|case {;}
 	|line switch {;}
 	|line case {;}
+	| for {;}
+	| line for {;}
 	|
 
 	;
@@ -100,15 +103,15 @@ term	: integer_value {;}
 		  | Float_value {;}
 		  | Char_value{;}
 		  | String_value{;}
-		  |FALSE{;}
-		  |TRUE {;}
+		  | FALSE{;}
+		  | TRUE {;}
 	;
 type : CHAR
-     |INT
-	 |FLOAT
-	 |STRING
-	 |BOOL
-	 |VOID
+     | INT
+	 | FLOAT
+	 | STRING
+	 | BOOL
+	 | VOID
 	 ;
 argList: type identifier cont
         |
@@ -144,6 +147,12 @@ case : CASE identifier COLON line BREAK SEMICOLON | CASE term COLON line BREAK S
 while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop "); scopes[level] = "while";} 
 	;
 dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block SEMICOLON {printf("dowhile ");}
+	;
+
+//-------------------- FOR Rule ---------------
+
+for   :  For OPENBRACKET for_initi_stat SEMICOLON ifExpr SEMICOLON ifExpr CLOSEBRACKET start_block {printf("for loop ");} line end_block
+for_initi_stat : type identifier ASSIGN term 
 	;
 
 %%                     /* C code */
