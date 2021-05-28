@@ -41,8 +41,10 @@ int yylex();
 "&&" | "||"                        {return IfFiller;}
 "++"                         {return INC;}
 "--" 			             {return DEC;}
+"<<"                         {return SHL;}
+">>"                         {return SHR;}
 !	                         {return NOT;}
-[-+*/{}!]           	     {return yytext[0];}
+[-+*/{}~^&|]           	     {return yytext[0];}
 
 [ \t\n]              ;
 .                            {ECHO; yyerror ("unexpected character");}
