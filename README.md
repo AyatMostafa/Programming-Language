@@ -12,6 +12,7 @@ if ( expression ) {
      ...
      
 }
+
 else if ( expression ) {
 
      line1
@@ -21,6 +22,7 @@ else if ( expression ) {
      ...
      
 }
+
 ...
 ...
 
