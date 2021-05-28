@@ -1,5 +1,5 @@
 # ProgrammingLanguage
-A programming language is designed and implemented using the Lex and Yacc compiler generating package.
+A programming language is designed and implemented using the Lex and Yacc compiler generating package to be used as a compiler for C language.
 
 # If - Else statement
 
