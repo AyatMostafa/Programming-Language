@@ -154,6 +154,7 @@ dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRAC
 //-------------------- FOR Rule ---------------
 
 for   :  For OPENBRACKET for_initi_stat SEMICOLON ifExpr SEMICOLON ifExpr CLOSEBRACKET start_block {printf("for loop ");} line end_block
+	;
 for_initi_stat : type identifier ASSIGN term 
 	;
 
