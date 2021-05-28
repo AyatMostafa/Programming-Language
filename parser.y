@@ -86,6 +86,7 @@ line	: phrase 		    {;}
 		| for {;}
 		| line for {;}
 		| expression {;}
+		| single_val {;}
 	;
 
 phrase  :  constant{;}
@@ -148,9 +149,8 @@ else : ELSE start_block line end_block{printf("else\n");}
 switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
 cases : case | case cases
 case :  CASE term COLON line BREAK SEMICOLON  | CASE term COLON line  | CASE term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
-
-
 	;
+
 while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n"); scopes[level] = "while";} 
 	;
 dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
@@ -189,9 +189,13 @@ expression3:  OPENBRACKET expression OPENBRACKET
 			| identifier		
 	;
 
+single_val: term SEMICOLON | '-' term SEMICOLON
+	;
+
+
 //-------------------- FOR Rule ---------------
 
-for   :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
+for :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
 	;
 for_initi_stat :  type identifier ASSIGN term
 			    | identifier ASSIGN term
