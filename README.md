@@ -74,3 +74,12 @@ A programming language is designed and implemented using the Lex and Yacc compil
                break;
 
      }
+
+# For Loop statement
+
+for ( int i = 0; i < n; i = i + 1 )
+{
+     line 1
+
+     line 2
+}     
