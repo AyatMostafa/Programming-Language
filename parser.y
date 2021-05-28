@@ -110,6 +110,7 @@ term	: integer_value {;}
 		  | FALSE{;}
 		  | TRUE {;}
 	;
+
 type : CHAR
      | INT
 	 | FLOAT
@@ -126,11 +127,11 @@ cont: COMMA type identifier cont
 stmtlist:  phrase 
           | stmtlist phrase ;	
 
-func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET term SEMICOLON end_block{printf("function\n");} 
-constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment\n");}
-variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment\n");}
+func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET expression SEMICOLON end_block{printf("function\n");} 
+constant : CONST type identifier ASSIGN expression SEMICOLON {printf("constant and assignment\n");}
+variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n");}
 declaration : type identifier SEMICOLON {printf("declaration\n");}
-definition : identifier ASSIGN term SEMICOLON {printf("definition\n");} | identifier ASSIGN identifier SEMICOLON
+definition : identifier ASSIGN expression SEMICOLON {printf("definition\n");} | identifier ASSIGN identifier SEMICOLON
 logical_exp : identifier comparison_OP term {printf("logical expression \n");}
 
 
@@ -174,7 +175,7 @@ expression2:   INC expression3
 
 expression3:  OPENBRACKET expression OPENBRACKET
 			| term
-			| identifier
+			| identifier		
 	;
 
 //-------------------- FOR Rule ---------------
