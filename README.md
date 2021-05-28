@@ -12,11 +12,9 @@ A programming language is designed and implemented using the Lex and Yacc compil
 # If - Else statement
 
      if ( expression ) {
-     
           line1
           line2
           ...
-
      }
 
      else if ( expression ) {
