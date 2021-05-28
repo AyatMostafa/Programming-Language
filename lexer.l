@@ -25,22 +25,27 @@ int yylex();
 "break"             {return BREAK;}
 "for"            	{return FOR;}
 
+[+-]?[0-9]+			                                {return integer_value;}
+[+-]?([0-9]*[.])?[0-9]+		                        {return Float_value;}
+['][a-zA-Z][']                                      {return Char_value;}
+\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"            {return String_value;}
+[_a-zA-Z][_a-zA-Z0-9]{0,30}	                        {return identifier;}
+
 [;]                 {return SEMICOLON;}
 [:]                 {return COLON;}
 [,]                 {return COMMA;}
 [=]                 {return ASSIGN;}
 [(]                 {return OPENBRACKET;}
 [)]                 {return CLOSEBRACKET;}
-[+-]?[0-9]+			         {return integer_value;}
-[+-]?([0-9]*[.])?[0-9]+		 {return Float_value;}
-['][a-zA-Z][']               {return Char_value;}
-\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"            {return String_value;}
-[_a-zA-Z][_a-zA-Z0-9]{0,30}	 {return identifier;}
->=|<=|>|<|==|!=		         {return comparison_OP;}
-"&&"|"||"                    {return IfFiller;}
+
+">="|"<="|">"|"<"|"=="|"!="		   {return comparison_OP;}
+"&&" | "||"                        {return IfFiller;}
+"++"                         {return INC;}
+"--" 			             {return DEC;}
 !	                         {return NOT;}
+[-+*/{}!]           	     {return yytext[0];}
+
 [ \t\n]              ;
-[-+=;{}()!]           	     {return yytext[0];}
 .                            {ECHO; yyerror ("unexpected character");}
 
 %%

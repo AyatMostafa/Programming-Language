@@ -47,6 +47,10 @@ char* scopes[50];
 %token <string>String_value;
 %token identifier
 %token <string> comparison_OP
+%token INC
+%token DEC
+
+
 //%type <int_num> line phrase
 
 %%
@@ -152,12 +156,38 @@ while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf
 dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
 	;
 
+//----------------- mathematical and logical expression -----------
+expression: expression1 | expression2 | expression3
+
+expression1:  expression '=' expression
+			| expression '+' expression
+			| expression '-' expression
+			| expression '*' expression
+			| expression '/' expression
+			| expression IfFiller expression
+			| expression comparison_OP expression
+    ;
+
+expression2:   INC expression3
+			|  expression3 INC
+			|  DEC expression3
+			|  expression3 DEC
+	;
+
+expression3:  OPENBRACKET expression OPENBRACKET
+			| term
+			| identifier
+	;
+
 //-------------------- FOR Rule ---------------
 
-for   :  FOR OPENBRACKET for_initi_stat SEMICOLON ifExpr SEMICOLON ifExpr CLOSEBRACKET start_block {printf("for loop ");} line end_block
+for   :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
 	;
-for_initi_stat : type identifier ASSIGN term 
+for_initi_stat : type identifier ASSIGN term
 	;
+
+variable_dec : 	
+
 
 %%                     /* C code */
  
