@@ -45,7 +45,7 @@ char* scopes[50];
 %token <float_num> Float_value
 %token <id>Char_value;
 %token <string>String_value;
-%token <string> identifier
+%token identifier
 %token <string> comparison_OP
 //%type <int_num> line phrase
 
@@ -67,11 +67,7 @@ line	: phrase 		{;}
 	| line end_block	{;}
 //	| logical_exp';'	{;}
 //	| line logical_exp';'	{;}
-	| func {;}
-	|constant{;}
-	|variable{;}
-	|declaration{;}
-	|definition{;}
+	
 	|if {;}
 	|else {;}
 	|elseIf {;}
@@ -89,6 +85,11 @@ line	: phrase 		{;}
 	;
 
 phrase  : declare';'            {printf("phrase \n");}
+    |constant{;}
+	|variable{;}
+	|declaration{;}
+	|definition{;}
+	| func {;}
         ;
 //block	: start_block line end_block	{printf("block finished \n");}
 	;
@@ -120,8 +121,8 @@ argList: type identifier cont
 cont: COMMA type identifier cont
      |
 ;
-stmtlist:  line 
-          | stmtlist line ;	
+stmtlist:  phrase 
+          | stmtlist phrase ;	
 
 func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET term SEMICOLON end_block{printf("function\n");} 
 constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment\n");}

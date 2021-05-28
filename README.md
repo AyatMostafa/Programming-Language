@@ -104,7 +104,9 @@ for ( int i = 0; i < n; i = i + 1 )
 
 # Functions
      Data_type function_name(params){
+
           line1
+          
           line2
           .. 
 
