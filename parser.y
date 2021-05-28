@@ -139,9 +139,9 @@ case : CASE identifier COLON line BREAK SEMICOLON | CASE term COLON line BREAK S
 
 
 	;
-while	: While '(' logical_exp ')' start_block {printf("whileLoop "); scopes[level] = "while";} 
+while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop "); scopes[level] = "while";} 
 	;
-dowhile	: Do_While start_block line end_block While '(' logical_exp ')'';' {printf("dowhile ");}
+dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block SEMICOLON {printf("dowhile ");}
 	;
 
 %%                     /* C code */
