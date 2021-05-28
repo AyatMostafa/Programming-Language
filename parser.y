@@ -143,13 +143,13 @@ else : ELSE start_block line end_block{printf("else\n");}
 
 switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
 cases : case | case cases
-case : CASE identifier COLON line BREAK SEMICOLON | CASE term COLON line BREAK SEMICOLON | CASE identifier COLON line | CASE term COLON line | CASE identifier COLON  BREAK SEMICOLON | CASE term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
+case :  CASE term COLON line BREAK SEMICOLON  | CASE term COLON line  | CASE term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
 
 
 	;
 while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n"); scopes[level] = "while";} 
 	;
-dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block SEMICOLON {printf("dowhile \n");}
+dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
 	;
 
 //-------------------- FOR Rule ---------------
