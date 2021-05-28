@@ -47,30 +47,30 @@ A programming language is designed and implemented using the Lex and Yacc compil
 
 # Switch - Case statement
 
-switch ( identifier ) {
+     switch ( identifier ) {
 
-     case number/identifier/string :
-     
-          line 1
+          case number/identifier/string :
 
-          line 2
+               line 1
 
-          ....
+               line 2
 
-          break;
-          
-      ...
-      
-      ...
-      
-      default :
-      
-          line 1
+               ....
 
-          line 2
+               break;
 
-          ....
+           ...
 
-          break;
-          
-}
+           ...
+
+           default :
+
+               line 1
+
+               line 2
+
+               ....
+
+               break;
+
+     }
