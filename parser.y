@@ -181,7 +181,8 @@ expression3:  OPENBRACKET expression OPENBRACKET
 
 for   :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
 	;
-for_initi_stat : type identifier ASSIGN term
+for_initi_stat :  type identifier ASSIGN term
+			    | identifier ASSIGN term
 	;
 
 
