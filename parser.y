@@ -184,8 +184,6 @@ for   :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expressio
 for_initi_stat : type identifier ASSIGN term
 	;
 
-variable_dec : 	
-
 
 %%                     /* C code */
  
