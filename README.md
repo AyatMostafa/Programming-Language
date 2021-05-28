@@ -83,3 +83,30 @@ for ( int i = 0; i < n; i = i + 1 )
 
      line 2
 }     
+
+
+
+# Data Types supported 
+-int 
+-float
+-char
+-string
+-bool
+-void for function 
+
+# Variable declaration and definition 
+e.g 
+int x;
+int y=5;
+string name = "I love compiler course"
+char c='a';
+bool flag=true;
+
+# Functions
+Data_type function_name(params){
+ line1
+ line2
+ .. 
+ 
+ return expression;
+}
