@@ -13,6 +13,11 @@ char* scopes[50];
 %token INT
 %token FLOAT
 %token CHAR
+
+%token IF
+%token ELSE
+
+
 %token STRING
 %token BOOL
 %token CONST
@@ -21,13 +26,20 @@ char* scopes[50];
 %token declare
 %token SEMICOLON
 %token COMMA
+%token COLON
 %token OPENBRACKET
 %token CLOSEBRACKET
 %token RET
+%token BREAK
 %token ASSIGN
+%token IfFiller
 %token While
 %token Do_While
 %token logical_OP
+%token NOT
+%token SWITCH
+%token CASE
+%token DEFAULT
 %token <int_num> integer_value
 %token <float_num> Float_value
 %token <id>Char_value;
@@ -59,6 +71,16 @@ line	: phrase 		{;}
 	|variable{;}
 	|declaration{;}
 	|definition{;}
+	|if {;}
+	|else {;}
+	|elseIf {;}
+	|line if {;}
+	|line else {;}
+	|line elseIf {;} 
+	|switch {;}
+	|case {;}
+	|line switch {;}
+	|line case {;}
 
 	;
 phrase  : declare';'            {printf("phrase ");}
@@ -93,15 +115,31 @@ cont: COMMA type identifier cont
      |
 ;
 
+
 func : type identifier OPENBRACKET argList CLOSEBRACKET start_block line end_block{printf("function");} 
 constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment");}
 variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment");}
 declaration : type identifier SEMICOLON {printf("declaration");}
-definition : identifier ASSIGN term SEMICOLON {printf("definition");}
+definition : identifier ASSIGN term SEMICOLON {printf("definition");} | identifier ASSIGN identifier SEMICOLON
 logical_exp : identifier comparison_OP term {printf("logical expression ");}
-	
+
+
+
+if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET start_block  {printf("if condition ");} line end_block
+ifExpr : cond | cond IfFiller ifExpr {printf("expression");}
+cond :  identifier comparison_OP identifier | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition ");}
+bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET | OPENBRACKET ifExpr CLOSEBRACKET 
+notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | NOT OPENBRACKET logical_exp CLOSEBRACKET | NOT OPENBRACKET term CLOSEBRACKET | NOT OPENBRACKET identifier CLOSEBRACKET | NOT OPENBRACKET ifExpr CLOSEBRACKET
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("else if condition ");}
+else : ELSE start_block line end_block{printf("else");}
+
+switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
+cases : case | case cases
+case : CASE identifier COLON line BREAK SEMICOLON | CASE term COLON line BREAK SEMICOLON | CASE identifier COLON line | CASE term COLON line | CASE identifier COLON  BREAK SEMICOLON | CASE term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
+
+
 	;
-while	: While '(' logical_exp ')' start_block {printf("whileLoop "); scopes[level] = "while";}
+while	: While '(' logical_exp ')' start_block {printf("whileLoop "); scopes[level] = "while";} 
 	;
 dowhile	: Do_While start_block line end_block While '(' logical_exp ')'';' {printf("dowhile ");}
 	;

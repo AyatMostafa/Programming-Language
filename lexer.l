@@ -16,7 +16,15 @@ int yylex();
 "false"             {return FALSE;}
 "true"              {return TRUE;}
 "return"            {return RET; }
+"if"                {return IF;}
+"else"	            {return ELSE;}
+"switch"	        {return SWITCH;}
+"case"	            {return CASE;}
+"default"	        {return DEFAULT;}
+"break"             {return BREAK;}
+
 [;]                 {return SEMICOLON;}
+[:]                 {return COLON;}
 [,]                 {return COMMA;}
 [=]                 {return ASSIGN;}
 [(]                 {return OPENBRACKET;}
@@ -26,7 +34,9 @@ int yylex();
 ['][a-zA-Z][']               {return Char_value;}
 ["][a-zA-Z0-9]*["]           {return String_value;}
 [_a-zA-Z][_a-zA-Z0-9]{0,30}	 {return identifier;}
->=|<=|>|<|==|!=			{return comparison_OP;}		   
+>=|<=|>|<|==|!=		{return comparison_OP;}
+"&&"|"||"               {return IfFiller;}
+!	                        {return NOT;}
 [ \t\n]                ;
 [-+=;{}()!]           	   {return yytext[0];}
 .                      {ECHO; yyerror ("unexpected character");}
