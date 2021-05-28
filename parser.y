@@ -24,7 +24,6 @@ char* scopes[50];
 %token CONST
 %token FALSE
 %token TRUE
-%token declare
 %token SEMICOLON
 %token COMMA
 %token COLON
@@ -84,8 +83,7 @@ line	: phrase 		{;}
 
 	;
 
-phrase  : declare';'            {printf("phrase \n");}
-    |constant{;}
+phrase  :constant{;}
 	|variable{;}
 	|declaration{;}
 	|definition{;}

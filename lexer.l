@@ -11,7 +11,6 @@ int yylex();
 "void"              {return VOID;}
 "const"             {return CONST;}
 "bool"              {return BOOL;}
-"declare"			{return declare;}
 "while"				{return While;}
 "do"				{return Do_While;}
 "false"             {return FALSE;}
