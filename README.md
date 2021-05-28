@@ -16,59 +16,37 @@ A programming language is designed and implemented using the Lex and Yacc compil
           line2
           ...
      }
-
      else if ( expression ) {
-
           line1
-
           line2
-
           ...
-
      }
-
      ...
      ...
-
      else {
-
           line1
-
           line2
-
           ...
-
      }
 
 
 # Switch - Case statement
 
      switch ( identifier ) {
-
           case number/char/string :
-
                line 1
-
                line 2
-
                ....
-
                break;
 
            ...
-
            ...
 
            default :
-
                line 1
-
                line 2
-
                ....
-
                break;
-
      }
 
 # For Loop statement
