@@ -8,6 +8,7 @@ int yylex();
 "float"             {return FLOAT;}
 "char"              {return CHAR;}
 "string"            {return STRING;}
+"void"              {return VOID;}
 "const"             {return CONST;}
 "bool"              {return BOOL;}
 "declare"			{return declare;}

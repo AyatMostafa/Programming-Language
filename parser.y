@@ -13,7 +13,7 @@ char* scopes[50];
 %token INT
 %token FLOAT
 %token CHAR
-
+%token VOID
 %token IF
 %token ELSE
 
@@ -81,6 +81,7 @@ line	: phrase 		{;}
 	|case {;}
 	|line switch {;}
 	|line case {;}
+	|
 
 	;
 phrase  : declare';'            {printf("phrase ");}
@@ -107,6 +108,7 @@ type : CHAR
 	 |FLOAT
 	 |STRING
 	 |BOOL
+	 |VOID
 	 ;
 argList: type identifier cont
         |
@@ -116,7 +118,7 @@ cont: COMMA type identifier cont
 ;
 
 
-func : type identifier OPENBRACKET argList CLOSEBRACKET start_block line end_block{printf("function");} 
+func : type identifier OPENBRACKET argList CLOSEBRACKET start_block line RET term SEMICOLON end_block{printf("function");} 
 constant : CONST type identifier ASSIGN term SEMICOLON {printf("constant and assignment");}
 variable : type identifier ASSIGN term SEMICOLON {printf("declaration and assignment");}
 declaration : type identifier SEMICOLON {printf("declaration");}
