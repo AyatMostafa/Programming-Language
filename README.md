@@ -49,7 +49,7 @@ A programming language is designed and implemented using the Lex and Yacc compil
 
      switch ( identifier ) {
 
-          case number/identifier/string :
+          case number/char/string :
 
                line 1
 
