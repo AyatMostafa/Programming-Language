@@ -58,8 +58,7 @@ char* scopes[50];
 
 /* descriptions of expected inputs corresponding actions (in C) */
 
-line	: phrase 		    {;}
-		| line phrase		{;}
+line	: 
 		| while			    {;}
 		| line while		{;}
 		| dowhile		    {;}
@@ -86,15 +85,24 @@ line	: phrase 		    {;}
 		| for {;}
 		| line for {;}
 		| expression {;}
+		| line expression{;}
 		| single_val {;}
+		| line single_val{;}
+		| constant{;}
+		| line constant{;}
+	    | variable{;}
+		| line variable{;}
+	    | declaration{;}
+		| line declaration{;}
+	    | definition{;}
+		| line definition{;}
+	    | func {;}
+		| line func{;}
+		| func_call{;}
+		| line func_call{;}
 	;
 
-phrase  :  constant{;}
-	    |  variable{;}
-	    |  declaration{;}
-	    |  definition{;}
-	    |  func {;}
-		|  func_call{;}
+
         ;
 //block	: start_block line end_block	{printf("block finished \n");}
 	;
@@ -127,11 +135,12 @@ argList: type identifier cont
 cont: COMMA type identifier cont
      |
 ;
-stmtlist:  phrase 
-          | stmtlist phrase ;	
+stmtlist:  line 
+          | stmtlist line 
+		  ;	
 
 func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET expression SEMICOLON end_block{printf("function\n");} 
-func_call: identifier OPENBRACKET identifier CLOSEBRACKET SEMICOLON {printf("Function Call\n");}
+func_call: identifier OPENBRACKET identifier CLOSEBRACKET SEMICOLON {printf("Function Call\n")}
 constant : CONST type identifier ASSIGN expression SEMICOLON {printf("constant and assignment\n");}
 variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n");}
 declaration : type identifier SEMICOLON {printf("declaration\n");}
