@@ -93,6 +93,7 @@ phrase  :  constant{;}
 	    |  declaration{;}
 	    |  definition{;}
 	    |  func {;}
+		|  func_call{;}
         ;
 //block	: start_block line end_block	{printf("block finished \n");}
 	;
@@ -129,6 +130,7 @@ stmtlist:  phrase
           | stmtlist phrase ;	
 
 func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET expression SEMICOLON end_block{printf("function\n");} 
+func_call: identifier OPENBRACKET identifier CLOSEBRACKET SEMICOLON {printf("Function Call\n");}
 constant : CONST type identifier ASSIGN expression SEMICOLON {printf("constant and assignment\n");}
 variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n");}
 declaration : type identifier SEMICOLON {printf("declaration\n");}
