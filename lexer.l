@@ -4,13 +4,13 @@ void yyerror (char *s);
 int yylex();
 %}
 %%
-"int"               {return INT;}
-"float"             {return FLOAT;}
-"char"              {return CHAR;}
-"string"            {return STRING;}
+"int"               {yylval.string = strdup(yytext); return INT;}
+"float"             {yylval.string = strdup(yytext); return FLOAT;}
+"char"              {yylval.string = strdup(yytext); return CHAR;}
+"string"            {yylval.string = strdup(yytext); return STRING;}
 "void"              {return VOID;}
-"const"             {return CONST;}
-"bool"              {return BOOL;}
+"const"             {yylval.string = strdup(yytext); return CONST;}
+"bool"              {yylval.string = strdup(yytext); return BOOL;}
 "while"				{return While;}
 "do"				{return Do_While;}
 "false"             {return FALSE;}
@@ -28,7 +28,7 @@ int yylex();
 ([0-9]*[.])?[0-9]+		                        {return Float_value;}
 ['][a-zA-Z][']                                      {return Char_value;}
 \"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"            {return String_value;}
-[_a-zA-Z][_a-zA-Z0-9]{0,30}	                        {return identifier;}
+[_a-zA-Z][_a-zA-Z0-9]{0,30}	                        {yylval.string = strdup(yytext); return identifier;}
 
 [;]                 {return SEMICOLON;}
 [:]                 {return COLON;}
