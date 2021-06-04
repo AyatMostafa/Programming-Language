@@ -24,10 +24,10 @@ int yylex();
 "break"             {return BREAK;}
 "for"            	{return FOR;}
 
-[0-9]+			                                {return integer_value;}
+[0-9]+			                                {yylval.string = atoi(yytext); return integer_value;}
 ([0-9]*[.])?[0-9]+		                        {return Float_value;}
 ['][a-zA-Z][']                                      {return Char_value;}
-\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"            {return String_value;}
+\"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"            {yylval.string = strdup(yytext);return String_value;}
 [_a-zA-Z][_a-zA-Z0-9]{0,30}	                        {yylval.string = strdup(yytext); return identifier;}
 
 [;]                 {return SEMICOLON;}
@@ -37,7 +37,13 @@ int yylex();
 [(]                 {return OPENBRACKET;}
 [)]                 {return CLOSEBRACKET;}
 
-">="|"<="|">"|"<"|"=="|"!="		   {return comparison_OP;}
+">="            {return GE;}
+"<="            {return LE;}
+">"             {return G;}
+"<"             {return L;}
+"=="            {return EE;}
+"!="		   {return NE;}
+
 "&&" | "||"                        {return IfFiller;}
 "++"                         {return INC;}
 "--" 			             {return DEC;}
