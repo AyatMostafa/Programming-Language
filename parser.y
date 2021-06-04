@@ -6,9 +6,21 @@ int yylex();
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>       
 #define BRANCHFACTOR 20
 #define NUMVARIABLES 50
 #define MAX_STR_LEN 100
+
+
+
+#define LN10 2.3025850929940456840179914546844
+double ln(double x);
+double log10( double x );
+
+char * toArray(int number);
+char*arr[100000];
+int idx = 0;
+void try(char*operation,char* arg1, char*arg2);
 char* scopes[50];
 int level = 0;
 int node_counter;
@@ -71,7 +83,12 @@ void unused_symbols();
 %token <id> Char_value
 %token <string> String_value
 %token <string> identifier
-%token <string> comparison_OP
+%token <string> GE
+%token <string> LE
+%token <string> G
+%token <string> L
+%token <string> EE
+%token <string> NE
 %token INC
 %token DEC
 %token SHL
@@ -79,7 +96,6 @@ void unused_symbols();
 
 %type<location> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
 %type <string> type
-
 %%
 
 /* descriptions of expected inputs corresponding actions (in C) */
@@ -136,12 +152,12 @@ end_block  : '}'{
 					}
 				}
 	;
-term	: integer_value {;} 
+term	: integer_value {;try("",toArray($1),"");} 
 		  | Float_value {;}
-		  | Char_value{;}
-		  | String_value{;}
+		  | Char_value{;printf($1);char *ptr = malloc(2*sizeof(char));ptr[0] = $1;ptr[1] = '\0';try("",ptr,""); }
+		  | String_value{;try("",$1,""); }
 		  | FALSE{;}
-		  | TRUE {;}
+		  | TRUE {;try("","true",""); }
 	;
 
 type : CHAR
@@ -167,16 +183,16 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {printf("constant a
 variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n");}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "");printf("declaration\n");}
 definition : identifier ASSIGN expression SEMICOLON {assign_symbol($1, "int"); printf("definition\n");} | identifier ASSIGN identifier SEMICOLON {assign_symbol($1, get_symbol($3));}
-logical_exp : identifier comparison_OP term {printf("logical expression \n");}
+logical_exp : identifier comparison_OP term {try("",$1,"");printf("logical expression \n");}
 
+comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-
-if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET start_block  {printf("if condition\n");} line end_block
+if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} line end_block
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
-cond :  identifier comparison_OP identifier | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
+cond :  identifier comparison_OP identifier {try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
 bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET | OPENBRACKET ifExpr CLOSEBRACKET 
 notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | NOT OPENBRACKET logical_exp CLOSEBRACKET | NOT OPENBRACKET term CLOSEBRACKET | NOT OPENBRACKET identifier CLOSEBRACKET | NOT OPENBRACKET ifExpr CLOSEBRACKET
-elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("else if condition ");}
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {try("elseif","","");printf("else if condition ");}
 else : ELSE start_block line end_block{printf("else\n");}
 
 switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
@@ -248,7 +264,23 @@ int main (void) {
 	yyparse ( );
 	unused_symbols();
 	print_symbol_table();
+	for(int i=0; i<idx;++i){
+		printf(arr[i]);
+	}
 	return 0;
+}
+
+
+try(char*operation,char* arg1, char*arg2){
+	if (operation != ""){
+		arr[idx++] = operation;
+	}
+	if(arg1 != "") {
+		arr[idx++] = arg1;
+	}
+	if(arg2 != "") {
+		arr[idx++] = arg2;
+	}
 }
 
 void yyerror (char *s) {fprintf (stderr, "%s\n", s);}
@@ -376,4 +408,40 @@ void print_symbol_table(){
    	fp = fopen ("symbol_table.txt","w");
 	traverse_node(root, fp, "0");	
    	fclose (fp);
+}
+
+char * toArray(int number)
+{
+    int n = log10(number) + 1;
+    int i;
+    char *numberArray = calloc(n, sizeof(char));
+    for (i = n-1; i >= 0; --i, number /= 10)
+    {
+        numberArray[i] = (number % 10) + '0';
+    }
+    return numberArray;
+}
+
+double ln(double x)
+{
+    double old_sum = 0.0;
+    double xmlxpl = (x - 1) / (x + 1);
+    double xmlxpl_2 = xmlxpl * xmlxpl;
+    double denom = 1.0;
+    double frac = xmlxpl;
+    double term = frac;                 // denom start from 1.0
+    double sum = term;
+
+    while ( sum != old_sum )
+    {
+        old_sum = sum;
+        denom += 2.0;
+        frac *= xmlxpl_2;
+        sum += frac / denom;
+    }
+    return 2.0 * sum;
+}
+
+double log10( double x ) {
+    return ln(x) / LN10;    
 }
