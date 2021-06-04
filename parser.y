@@ -9,6 +9,7 @@ int yylex();
 #define BRANCHFACTOR 20
 #define NUMVARIABLES 50
 #define MAX_STR_LEN 100
+#define FUNC_Args 10
 char* scopes[50];
 int level = 0;
 int node_counter;
@@ -16,6 +17,7 @@ typedef struct symbol{
 	char* symbol_id;
 	char* type;
 	int initialized;
+	int isConst;
 } symbol;
 typedef struct node{
 	int id;
@@ -24,12 +26,23 @@ typedef struct node{
 	struct node* children[BRANCHFACTOR];
 	struct node* parent;
 	struct symbol symbols[NUMVARIABLES];
+
+	// in case of function only
+	int num_arguments;
+	char* argumet_types[FUNC_Args];
+	char* argumet_names[FUNC_Args];
 } node;
 node* root;
 node* current;
-
+int in_function = 0;
+char* function_table[BRANCHFACTOR];
+char* cur_func_args[FUNC_Args];
+char* cur_func_names[FUNC_Args];
+int cur_func_args_num = 0;
+int arg_size = -2;
+int func_call_node = -1;
 void new_block();
-int declare_symbol(char*, char*, int, char*);
+int declare_symbol(char*, char*, int, char*, int);
 char* get_symbol(char* id);
 void unused_symbols();
 %}
@@ -118,21 +131,31 @@ line	:
 		| line declaration{;}
 	    | definition{;}
 		| line definition{;}
-	    | func {;}
-		| line func{;}
-		| func_call{;}
-		| line func_call{;}
+	    | func_p1 {;}
+		| line func_p1{;}
+		| func_p2 {;}
+		| line func_p2{;}
+		| func_call_p1{;}
+		| line func_call_p1{;}
+		| func_call_p2{;}
+		| line func_call_p2{;}
 	;
 
-//{level += 1;  }
-start_block: '{'		{level += 1; new_block(); printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, current->parent->id);}
+start_block: '{'{
+					level += 1;
+					if (in_function == 1) new_block(1); else new_block(0);
+				 	printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, current->parent->id);
+				}
 	;
-end_block  : '}'{
+end_block:	 '}'{
+					if(in_function == 1) 
+						in_function = 0; 
 					if (level == 0) yyerror("start scope first!\n"); 
 					else{
 					int parID;
 					if(current->id == 1)  parID = -1; else parID = current->parent->id;
-				 	level -= 1; unused_symbols(); current = current -> parent; printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, parID);
+				 	level -= 1; unused_symbols(); 
+					current = current -> parent; printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, parID);
 					}
 				}
 	;
@@ -151,22 +174,90 @@ type : CHAR
 	 | BOOL
 	 | VOID
 	 ;
-argList: type identifier cont
+argList: type identifier cont	{
+								cur_func_args[cur_func_args_num] = $1;
+								cur_func_names[cur_func_args_num] = $2;
+								cur_func_args_num += 1;
+								}
         |
 ;
-cont: COMMA type identifier cont
+cont: COMMA type identifier cont{
+								cur_func_args[cur_func_args_num] = $2;
+								cur_func_names[cur_func_args_num] = $3;
+								cur_func_args_num += 1;
+								}
      |
 ;
 stmtlist:  line 
           | stmtlist line 
 		  ;	
 
-func : type identifier OPENBRACKET argList CLOSEBRACKET start_block stmtlist RET expression SEMICOLON end_block{printf("function\n");} 
-func_call: identifier OPENBRACKET identifier CLOSEBRACKET SEMICOLON {printf("Function Call\n");}
-constant : CONST type identifier ASSIGN expression SEMICOLON {printf("constant and assignment\n");}
+func_p1: type identifier OPENBRACKET argList CLOSEBRACKET 
+		{
+			if (current->id != 0){
+				yyerror("Function can only be declared globally!");
+				return;
+			}
+			for(int i=0; i<BRANCHFACTOR; i++)
+				if(function_table[i] && strcmp(function_table[i], $2)==0){
+					char Output[MAX_STR_LEN];
+					sprintf(Output, "%s%s%s", "A function with name ", $2, " is already defined!\n");
+					yyerror(Output);
+					return 0;
+				}
+			function_table[node_counter+1] = $2;
+			in_function = 1;
+		};
+func_p2: func_p1 start_block stmtlist RET expression SEMICOLON end_block{printf("function\n");}; 
+many_identifiers:
+				identifier {if(check_func(get_symbol($1))==0) return;}
+				|identifier COMMA many_identifiers {if(check_func(get_symbol($1))==0) return;};
+func_call_p1: identifier OPENBRACKET 
+			{
+				int found = 0;
+				for(int i=0; i<BRANCHFACTOR; i++)
+					if(function_table[i] && strcmp(function_table[i], $1)==0)
+						found = 1;
+				if (found != 1){
+					char Output[MAX_STR_LEN];
+					sprintf(Output, "%s%s", $1, " is not a function!\n");
+					yyerror(Output);
+					return 0;
+				}
+				for(int i=0; i<BRANCHFACTOR; i++){
+					if(function_table[i] && strcmp(function_table[i], $1)==0){
+						for(int j=0; j<root->num_children; j++)
+							if(root->children[j]->id == i){
+								arg_size = root->children[j] -> num_arguments;
+								func_call_node = j;
+							}
+						}
+					}
+			}
+func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON | func_call_p1 CLOSEBRACKET SEMICOLON
+			{	if(arg_size != 0){
+					yyerror("Missing another argument(s)!\n");
+					return;
+				}
+				func_call_node = 0;
+				printf("Function Call\n");
+			}
+constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n");}
 variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n");}
-declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "");printf("declaration\n");}
-definition : identifier ASSIGN expression SEMICOLON {assign_symbol($1, "int"); printf("definition\n");} | identifier ASSIGN identifier SEMICOLON {assign_symbol($1, get_symbol($3));}
+declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
+definition 	: identifier ASSIGN expression SEMICOLON 
+				{
+					assign_symbol($1, "int"); 
+					printf("definition\n");
+				} 
+			| identifier ASSIGN identifier SEMICOLON 
+				{
+					char* t = get_symbol($3);
+					if(strcmp(t, "None") == 0) 
+						return;
+					else 
+						assign_symbol($1, t);
+				}
 logical_exp : identifier comparison_OP term {printf("logical expression \n");}
 
 
@@ -260,10 +351,29 @@ void new_block(){
 	current->children[current->num_children] -> num_children = 0;
 	current->children[current->num_children] -> num_symbols = 0;
 	current->children[current->num_children] -> parent = current;
+	if(in_function == 1){
+		current->children[current->num_children] -> num_arguments = cur_func_args_num;
+		for (int i=0; i< cur_func_args_num; i++){
+			current->children[current->num_children] -> argumet_types[i] = cur_func_args[i];
+			current->children[current->num_children] -> argumet_names[i] = cur_func_names[i];
+		}
+		cur_func_args_num = 0;
+	}
 	current->num_children += 1;
 	current = current->children[current->num_children - 1];	
 }
-int declare_symbol(char* id, char* type_id, int init, char* type_value){
+int declare_symbol(char* id, char* type_id, int init, char* type_value, int isConstant){
+	if(in_function){
+		node* temp = current;
+		while(temp->parent->id != 0) temp = temp->parent;
+		for(int i=0; i< temp->num_arguments; i++)
+			if(strcmp(temp->argumet_names[i], id) == 0){
+			char Output[MAX_STR_LEN];
+			sprintf(Output, "%s%s%s", "can't declare ", id, " (Formal Parameter) !\n");
+			yyerror(Output);
+			return 0;
+			}
+	}
 	for (int i=0; i<current->num_symbols; i++)
 		if(strcmp(current->symbols[i].symbol_id, id) == 0){
 			char Output[MAX_STR_LEN];
@@ -273,7 +383,7 @@ int declare_symbol(char* id, char* type_id, int init, char* type_value){
 		}
 	if(init == 1 && strcmp(type_id, type_value)!=0){
 		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "type mismatch in assigning", id, "!\n");
+		sprintf(Output, "%s%s%s", "Type mismatch while assigning ", id, "!\n");
 		yyerror(Output);
 		return 0;
 	}
@@ -281,6 +391,7 @@ int declare_symbol(char* id, char* type_id, int init, char* type_value){
 	current->symbols[current->num_symbols].symbol_id = id;
 	current->symbols[current->num_symbols].type = type_id;
 	current->symbols[current->num_symbols].initialized = init;
+	current->symbols[current->num_symbols].isConst = isConstant;
 	current->num_symbols += 1;
 	return 1;
 }
@@ -300,18 +411,30 @@ node* find_symbol(char* id, int* index){
 	}
 }
 int assign_symbol(char* id, char* data_type){
+	if(in_function){
+		node* temp = current;
+		while(temp->parent->id != 0) temp = temp->parent;
+		for(int i=0; i< temp->num_arguments; i++)
+			if(strcmp(temp->argumet_names[i], id) == 0)
+				return 1;
+	}
 	int* index = (int*) malloc (sizeof(int));
 	node* symbol_node = find_symbol(id, index);
-	//printf("index %d", *index);
 	if (symbol_node == NULL){
 		char Output[MAX_STR_LEN];
 		sprintf(Output, "%s%s%s", "Undeclared Identifier ", id, "!\n");
 		yyerror(Output);
 		return 0;
 	}
+	else if(symbol_node->symbols[*index].isConst == 1){
+		char Output[MAX_STR_LEN];
+		sprintf(Output, "%s%s%s", "Constant identifier ", id, " can't be re-assigned!\n");
+		yyerror(Output);
+		return 0;
+	}
 	else if(strcmp(symbol_node->symbols[*index].type, data_type)!= 0){
 		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%S", "type mismatch while assigning ", id, "!\n");
+		sprintf(Output, "%s%s%S", "Type mismatch while assigning ", id, "!\n");
 		yyerror(Output);
 		return 0;
 	}
@@ -321,6 +444,13 @@ int assign_symbol(char* id, char* data_type){
 	}
 }
 char* get_symbol(char* id){
+	if(in_function){
+		node* temp = current;
+		while(temp->parent->id != 0) temp = temp->parent;
+		for(int i=0; i< temp->num_arguments; i++)
+			if(strcmp(temp->argumet_names[i], id) == 0)
+				return temp->argumet_types[i];
+	}
 	int* index = (int*) malloc (sizeof(int));
 	node* symbol_node = find_symbol(id, index);
 	if (symbol_node == NULL){
@@ -335,9 +465,8 @@ char* get_symbol(char* id){
 		yyerror(Output);
 		return "None";
 	}
-	else{
+	else
 		return symbol_node->symbols[*index].type;
-	}
 }
 void unused_symbols(){
 	for (int i=0; i<current->num_symbols; i++){
@@ -360,16 +489,16 @@ int type_conversion(char* id, char* new_type){
 	}
 }
 void traverse_node(node* Node, FILE* fp, char* seq){
-	for (int i=0; i < Node->num_children; i++){
-		char Output[10];
-		sprintf(Output, "%s.%d", seq, i, "!\n");
-		traverse_node(Node->children[i], fp, Output);
-	}
 	fprintf(fp, "{\n %s \n", seq);
 	for(int i=0; i < Node->num_symbols; i++){
 		fprintf(fp, "\t %s %s %d\n", Node->symbols[i].symbol_id, Node->symbols[i].type, Node->symbols[i].initialized);
 	}
 	fprintf(fp, "}\n");
+	for (int i=0; i < Node->num_children; i++){
+		char Output[10];
+		sprintf(Output, "%s.%d", seq, i, "!\n");
+		traverse_node(Node->children[i], fp, Output);
+	}
 }
 void print_symbol_table(){
 	FILE * fp;
@@ -377,3 +506,16 @@ void print_symbol_table(){
 	traverse_node(root, fp, "0");	
    	fclose (fp);
 }
+int check_func(char* type){
+	if(arg_size <= 0){
+	 	yyerror("Too much arguments!\n");
+		return 0;
+	}
+	if(strcmp(root->children[func_call_node]->argumet_types[arg_size-1], type) != 0){
+	  	yyerror("Invalid argument list!\n");
+	  	return 0;
+	}
+	arg_size -= 1;
+	return 1;
+}
+
