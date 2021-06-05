@@ -23,6 +23,7 @@ double log10( double x );
 char * toArray(int number);
 void printQuad();
 void printQuadComp(char* s1, char* s2, char* s3);
+void printQuadExpress(char* s1, char* s2, char* s3);
 void try(char*operation,char* arg1, char*arg2);
 int level = 0;
 int node_counter;
@@ -264,8 +265,8 @@ func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON {func_call_ha
 			| func_call_p1 CLOSEBRACKET SEMICOLON {func_call_handler();}
 			;
 			
-constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("PUSH", $3, "");}}
-variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n"); {try("PUSH", $2, "");}}
+constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("POP", $3, "");}}
+variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n"); {try("POP", $2, "");}}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
@@ -363,8 +364,8 @@ int main (void) {
 	for(int i=0; i<idx;++i){
 		printf(arr[i]);
 	}
-	int x;
-	scanf("%d", &x);
+	// int x;
+	// scanf("%d", &x);
 	printQuad();
 	fclose (fp);
 	return 0;
@@ -379,6 +380,19 @@ void printQuadComp(char* s1, char* s2, char* s3){
 	else if (s1=="GE") fprintf (fp, "compGE \n");
 	else if (s1=="G") fprintf (fp, "compG \n");
 	else fprintf (fp, "compL \n"); 
+}
+
+void printQuadExpress(char* s1, char* s2, char* s3){
+	if(s1 == "POP")
+		fprintf (fp, "Pop %s\n",s2);
+	else{
+		fprintf (fp, "push %s\n",s2);
+		if(s3 != NULL)
+			fprintf (fp, "push %s\n",s3);
+		fprintf (fp,  s1);
+		fprintf (fp, "\n");
+	}	
+	
 }
 
 void printQuadSwitchcases(char*c){
@@ -405,6 +419,14 @@ void printQuad(){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
 			i+=2;
+		}
+		else if(arr[i] == "Add" || arr[i] == "SUB" || arr[i] == "MUL" || arr[i] == "DIV" || arr[i] == "MOD" || arr[i] == "SHL" || arr[i] == "SHR"){
+			printQuadExpress(arr[i],arr[i+1],arr[i+2]);
+			i += 2;
+		}
+		else if(arr[i] == "INC" || arr[i] == "DEC" || arr[i] == "NOT" || arr[i] == "NEG" || arr[i] == "POP"){
+			printQuadExpress(arr[i], arr[i+1], NULL);
+			i += 1;
 		}
 		else if(arr[i]=="if" || arr[i]=="elseif"){
 			jmpNewLabel(notCond);
