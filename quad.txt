@@ -1,6 +1,0 @@
-PROC fun
-jz l0 
-Pop x
-RET 
-CALL fun
-Pop u

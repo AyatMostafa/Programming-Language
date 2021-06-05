@@ -6,7 +6,8 @@ int yylex();
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
-#include <math.h>       
+#include <math.h> 
+#include <stdbool.h>      
 #define BRANCHFACTOR 20
 #define NUMVARIABLES 50
 #define MAX_STR_LEN 100
@@ -16,6 +17,7 @@ int yylex();
 FILE * fp;
 int label=0;
 char*arr[100000];
+char* organzed[10];
 int idx = 0;
 double ln(double x);
 void jmpNewLabel(int notCond);
@@ -23,7 +25,7 @@ double log10( double x );
 char * toArray(int number);
 void printQuad();
 void printQuadComp(char* s1, char* s2, char* s3);
-void printQuadExpress(char* s1, char* s2, char* s3);
+void printQuadExpress(char* s1, char* s2, char* s3, int i);
 void try(char*operation,char* arg1, char*arg2);
 int level = 0;
 int node_counter;
@@ -77,14 +79,14 @@ void unused_symbols();
 %token <string> CONST
 %token FALSE
 %token TRUE
-%token SEMICOLON
+%token <string>SEMICOLON
 %token COMMA
 %token COLON
 %token OPENBRACKET
 %token CLOSEBRACKET
 %token RET
 %token BREAK
-%token ASSIGN
+%token <string>ASSIGN
 %token IfFiller
 %token While
 %token Do_While
@@ -112,6 +114,19 @@ void unused_symbols();
 %type <string>    expression expression1 expression2 expression3 
 %type<id> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
 %type <string> type
+
+// Precedence
+%right      ASSIGN
+%left       EQ NE
+%left       GE LE G L
+%left       SHR SHL
+%left       '-' '+'
+%left       '*' '/' '%'
+%right      '!' '~'
+%right      U_MINUM
+%right      PRE_INC PRE_DEC
+%left       SUF_INC SUF_DEC
+
 %%
 
 /* descriptions of expected inputs corresponding actions (in C) */
@@ -263,7 +278,17 @@ func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON {func_call_ha
 			;
 			
 constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("POP", $3, "");}}
-variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n"); {try("POP", $2, "");}}
+variable : type identifier ASSIGN expression SEMICOLON 
+		  	{	printf("declaration and assignment\n");
+			  	if( $4 == $5)
+				  {
+					try("Single" , $4, "");
+					printf("YES");
+				  }
+					
+				try("POP", $2, ""); 
+				// printf($4); printf("\n"); printf($5); printf("\n"); printf($3);
+			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
@@ -303,32 +328,32 @@ dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRAC
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     {try("Add", $1, $3); }
-			| expression '-' expression     {try("SUB", $1, $3);}
-			| expression '*' expression	    {try("MUL", $1, $3);}
-			| expression '/' expression	    {try("DIV", $1, $3);}
-			| expression '%' expression	    {try("MOD", $1, $3);}
+expression1:  expression '+' expression     { try("Add", $1, $3); try("", $$, ""); printf($$);}
+			| expression '-' expression     { try("SUB", $1, $3); try("", $$, ""); printf($$);}
+			| expression '*' expression	    { try("MUL", $1, $3); try("", $$, ""); printf($$);}
+			| expression '/' expression	    { try("DIV", $1, $3); try("", $$, ""); printf($$);}
+			| expression '%' expression	    { try("MOD", $1, $3); try("", $$, ""); }
 			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
 			| expression IfFiller expression
 			| expression comparison_OP expression
-			| expression SHL expression	  {try("SHL", $1, $3);}
-			| expression SHR expression	  {try("SHR", $1, $3);}
+			| expression SHL expression	  { try("SHL", $1, $3); try("", $$, "");}
+			| expression SHR expression	  { try("SHR", $1, $3); try("", $$, "");}
     ;
 
-expression2:   INC expression3     {try("INC", $2, "");}
-			|  expression3 INC	   
-			|  DEC expression3	   {try("DEC", $2, ""); }
-			|  expression3 DEC	  
+expression2:   INC expression3 %prec PRE_INC   {try("INC", $2, ""); try("", $$, "");}
+			|  expression3 INC %prec SUF_INC 	   
+			|  DEC expression3 %prec PRE_DEC   {try("DEC", $2, ""); try("", $$, "");}
+			|  expression3 DEC %prec SUF_DEC	  
 			|  '~' expression
-			|  '!' expression	   {try("NOT", $2, "");}
-			|  '-' expression	   {try("NEG", $2, "");}
+			|  '!' expression	               {try("NOT", $2, ""); try("", $$, "");}
+			|  '-' expression %prec U_MINUM	   {try("NEG", $2, ""); try("", $$, "");}
 	;
 
-expression3:  OPENBRACKET expression OPENBRACKET
+expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 			| term			
-			| identifier	{get_symbol($1);  $$ = $1; }	
+			| identifier	{get_symbol($1);  $$ = $1; printf($$); }	
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -359,10 +384,11 @@ int main (void) {
 	unused_symbols();
 	print_symbol_table();
 	for(int i=0; i<idx;++i){
-		printf(arr[i]);
+		printf(arr[i]); 
+		printf("  ");
 	}
-	// int x;
-	// scanf("%d", &x);
+	int x;
+	scanf("%d", &x);
 	printQuad();
 	fclose (fp);
 	return 0;
@@ -379,17 +405,42 @@ void printQuadComp(char* s1, char* s2, char* s3){
 	else fprintf (fp, "compL \n"); 
 }
 
-void printQuadExpress(char* s1, char* s2, char* s3){
+void printQuadExpress(char* s1, char* s2, char* s3, int i){
 	if(s1 == "POP")
 		fprintf (fp, "Pop %s\n",s2);
+	else if(s1 == "Single")
+		fprintf (fp, "push %s\n",s2);	
 	else{
-		fprintf (fp, "push %s\n",s2);
-		if(s3 != NULL)
+		if(i <= 3)
+		{
+			fprintf (fp, "push %s\n",s2);
+			if(s3 != NULL)
+				fprintf (fp, "push %s\n",s3);
+			fprintf (fp,  s1);
+			fprintf (fp, "\n");
+			return;
+		}
+		bool flagS2 = true, flagS3 = true;
+		for(int k = i; k >= 0; k -= 4)
+		{
+			if(arr[k-4] == "Add"|| arr[k-4] == "SUB" || arr[k-4]  == "MUL" || arr[k-4]  == "DIV" || arr[k-4]  == "MOD" || arr[k-4]  == "SHL" || arr[k-4] == "SHR" ||
+				arr[k-4] == "INC" || arr[k-4] == "DEC" || arr[k-4] == "NOT" || arr[k-4] == "NEG")
+			{
+				if(s2 == arr[k-1])
+					flagS2 = false;
+				if(s3 == arr[k-1])
+					flagS3 = false;
+			}
+			else
+				break;
+		}
+		if(flagS2)
+			fprintf (fp, "push %s\n",s2);
+		if(flagS3 && s3 != NULL)
 			fprintf (fp, "push %s\n",s3);
 		fprintf (fp,  s1);
 		fprintf (fp, "\n");
 	}	
-	
 }
 
 void printQuadSwitchcases(char*c){
@@ -418,11 +469,11 @@ void printQuad(){
 			i+=2;
 		}
 		else if(arr[i] == "Add" || arr[i] == "SUB" || arr[i] == "MUL" || arr[i] == "DIV" || arr[i] == "MOD" || arr[i] == "SHL" || arr[i] == "SHR"){
-			printQuadExpress(arr[i],arr[i+1],arr[i+2]);
-			i += 2;
+			printQuadExpress(arr[i],arr[i+1],arr[i+2], i);
+			i += 3;
 		}
-		else if(arr[i] == "INC" || arr[i] == "DEC" || arr[i] == "NOT" || arr[i] == "NEG" || arr[i] == "POP"){
-			printQuadExpress(arr[i], arr[i+1], NULL);
+		else if(arr[i] == "INC" || arr[i] == "DEC" || arr[i] == "NOT" || arr[i] == "NEG" || arr[i] == "POP" || arr[i] == "Single"){
+			printQuadExpress(arr[i], arr[i+1], NULL, i);
 			i += 1;
 		}
 		else if(arr[i]=="if" || arr[i]=="elseif"){
