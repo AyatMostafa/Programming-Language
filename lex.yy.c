@@ -807,7 +807,7 @@ YY_RULE_SETUP
 case 21:
 YY_RULE_SETUP
 #line 28 "lexer.l"
-{return Float_value;}
+{ yylval.float_num = atof(yytext);return Float_value;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP

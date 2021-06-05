@@ -228,17 +228,17 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET
 			in_function = 1;
 		};
 func_p2: func_p1 start_block stmtlist return SEMICOLON
- {printf("function\n");}; 
+ {try("PROC", $2,"");printf("function\n");}; 
 
-return: RET expression     			    {$$ = opr(RET, 1,$1, $2);}
-		|RET                            {$$ = opr(RET, 2, $1, NULL);}
+return: RET expression     			    {try("RET","", "");}
+		|RET                            {try("RET","", "");}
 
 
 
 many_identifiers:
 				identifier {if(check_func(get_symbol($1))==0) return;}
 				|identifier COMMA many_identifiers {if(check_func(get_symbol($1))==0) return;};
-func_call_p1: identifier OPENBRACKET 
+func_call_p1: identifier OPENBRACKET {$$=try("CALL",$1,""); }
 			{
 				int found = 0;
 				for(int i=0; i<BRANCHFACTOR; i++)
