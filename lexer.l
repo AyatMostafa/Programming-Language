@@ -25,7 +25,7 @@ int yylex();
 "for"            	{return FOR;}
 
 [0-9]+			                                {yylval.string = atoi(yytext); return integer_value;}
-([0-9]*[.])?[0-9]+		                        {return Float_value;}
+([0-9]*[.])?[0-9]+		                        { yylval.float_num = atof(yytext);return Float_value;}
 ['][a-zA-Z][']                                      {return Char_value;}
 \"[\x23-\x7E =\?!\*()<>+/^%~|&@#;{}.]*\"            {yylval.string = strdup(yytext);return String_value;}
 [_a-zA-Z][_a-zA-Z0-9]{0,30}	                        {yylval.string = strdup(yytext); return identifier;}

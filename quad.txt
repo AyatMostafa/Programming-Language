@@ -1,0 +1,18 @@
+push q
+push 1
+compEQ 
+jnz l0 
+push 2
+compEQ 
+jnz l0 
+push a
+push g
+compL 
+jnz l0 
+push o
+push j
+compEQ 
+jz l1 
+push 2
+push l
+compLE 
