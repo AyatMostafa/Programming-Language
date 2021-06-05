@@ -13,11 +13,16 @@ int yylex();
 #define FUNC_Args 10
 #define LN10 2.3025850929940456840179914546844
 
-double ln(double x);
-double log10( double x );
-char * toArray(int number);
+FILE * fp;
+int label=0;
 char*arr[100000];
 int idx = 0;
+double ln(double x);
+void jmpNewLabel(int notCond);
+double log10( double x );
+char * toArray(int number);
+void printQuad();
+void printQuadComp(char* s1, char* s2, char* s3);
 void try(char*operation,char* arg1, char*arg2);
 int level = 0;
 int node_counter;
@@ -103,7 +108,8 @@ void unused_symbols();
 %token SHL
 %token SHR
 
-%type<location> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
+%type <string>    expression expression1 expression2 expression3 
+%type<char> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
 %type <string> type
 %%
 
@@ -171,11 +177,11 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;}//try("",toArray($1),"");} 
-		  | Float_value {;}
-		  | Char_value{;printf($1);char *ptr = malloc(2*sizeof(char));ptr[0] = $1;ptr[1] = '\0';try("",ptr,""); }
+term	: integer_value {;try("",toArray($1),"");} 
+		  | Float_value {; char buf[1000];gcvt($1, 6, buf);printf(buf);try("",buf,"");}
+		  | Char_value{;printf('%c',$1);/*try("",ptr,""); */}
 		  | String_value{;try("",$1,""); }
-		  | FALSE{;}
+		  | FALSE{;try("","false","");}
 		  | TRUE {;try("","true",""); }
 	;
 
@@ -258,8 +264,8 @@ func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON {func_call_ha
 			| func_call_p1 CLOSEBRACKET SEMICOLON {func_call_handler();}
 			;
 			
-constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n");}
-variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n");}
+constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("PUSH", $3, "");}}
+variable : type identifier ASSIGN expression SEMICOLON {printf("declaration and assignment\n"); {try("PUSH", $2, "");}}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
@@ -280,14 +286,14 @@ comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","",""
 if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} line end_block
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
 cond :  identifier comparison_OP identifier {try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
-bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET | OPENBRACKET ifExpr CLOSEBRACKET 
-notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | NOT OPENBRACKET logical_exp CLOSEBRACKET | NOT OPENBRACKET term CLOSEBRACKET | NOT OPENBRACKET identifier CLOSEBRACKET | NOT OPENBRACKET ifExpr CLOSEBRACKET
+bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
+notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
 elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {try("elseif","","");printf("else if condition ");}
-else : ELSE start_block line end_block{printf("else\n");}
+else : ELSE start_block line end_block{try("elseif","","");printf("else\n");}
 
-switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
+switch : SWITCH OPENBRACKET identifier {try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
 cases : case | case cases
-case :  CASE term COLON line BREAK SEMICOLON  | CASE term COLON line  | CASE term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
+case :  CASE {try("case","","");} term COLON line BREAK SEMICOLON | CASE {try("case","","");} term COLON line | CASE {try("case","","");} term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
 	;
 
 while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n");} 
@@ -299,33 +305,32 @@ dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRAC
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression ASSIGN expression
-			| expression '+' expression
-			| expression '-' expression
-			| expression '*' expression
-			| expression '/' expression
-			| expression '%' expression
-			| expression '&' expression
+expression1:  expression '+' expression     {try("Add", $1, $3); }
+			| expression '-' expression     {try("SUB", $1, $3);}
+			| expression '*' expression	    {try("MUL", $1, $3);}
+			| expression '/' expression	    {try("DIV", $1, $3);}
+			| expression '%' expression	    {try("MOD", $1, $3);}
+			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
 			| expression IfFiller expression
 			| expression comparison_OP expression
-			| expression SHL expression
-			| expression SHR expression
+			| expression SHL expression	  {try("SHL", $1, $3);}
+			| expression SHR expression	  {try("SHR", $1, $3);}
     ;
 
-expression2:   INC expression3
-			|  expression3 INC
-			|  DEC expression3
-			|  expression3 DEC
+expression2:   INC expression3     {try("INC", "1", $2);}
+			|  expression3 INC	   
+			|  DEC expression3	   {try("DEC", "1", $2); }
+			|  expression3 DEC	  
 			|  '~' expression
-			|  '!' expression
-			|  '-' expression
+			|  '!' expression	   {try("NOT", "$2", "");}
+			|  '-' expression	   {try("NEG", "$2", "");}
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET
-			| term;
-			| identifier	{get_symbol($1);}	
+			| term			
+			| identifier	{get_symbol($1);  $$ = $1; }	
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -344,6 +349,7 @@ for_initi_stat :  type identifier ASSIGN term
 %%                     /* C code */
 
 int main (void) {
+	fp = fopen ("quad.txt","w");
 	/* init symbol table */
 	root = malloc(sizeof (node));
 	node_counter = 0;
@@ -357,9 +363,66 @@ int main (void) {
 	for(int i=0; i<idx;++i){
 		printf(arr[i]);
 	}
+	int x;
+	scanf("%d", &x);
+	printQuad();
+	fclose (fp);
 	return 0;
 }
 
+void printQuadComp(char* s1, char* s2, char* s3){
+	fprintf (fp, "push %s\n",s2);
+	fprintf (fp, "push %s\n",s3);
+	if (s1=="EE") fprintf (fp, "compEQ \n");
+	else if (s1=="NE") fprintf (fp, "compNEQ \n");
+	else if (s1=="LE") fprintf (fp, "compLE \n");
+	else if (s1=="GE") fprintf (fp, "compGE \n");
+	else if (s1=="G") fprintf (fp, "compG \n");
+	else fprintf (fp, "compL \n"); 
+}
+
+void printQuadSwitchcases(char*c){
+	fprintf (fp, "push %s\n",c);
+	fprintf (fp, "compEQ \n");
+	fprintf (fp, "jnz l%d \n",label); //nz as I'll make the quad will be directlu under it if they are eual, so if not equal, jump to the other comparison
+	label+=1;
+}
+
+void jmpNewLabel(int notCond){
+	if(notCond){
+		fprintf (fp, "jnz l%d \n",label);
+	}
+	else{
+		fprintf (fp, "jz l%d \n",label);
+	}
+	label+=1;
+}
+
+void printQuad(){
+	int notCond=0;
+	int endSwitchCond=0;
+	for (int i=0;i<idx;++i){
+		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
+			printQuadComp(arr[i],arr[i+1],arr[i+2]);
+			i+=2;
+		}
+		else if(arr[i]=="if" || arr[i]=="elseif"){
+			jmpNewLabel(notCond);
+			notCond=0;
+		}
+		else if(arr[i]=="not"){
+			notCond=1;
+		}
+		else if(arr[i]=="switch"){
+			fprintf (fp, "push %s\n",arr[i+1]);
+			i+=1;
+		}
+		else if(arr[i]=="case"){
+			printQuadSwitchcases(arr[i+1]);
+			i+=1;
+		}
+	}
+}
 
 try(char*operation,char* arg1, char*arg2){
 	if (operation != ""){
