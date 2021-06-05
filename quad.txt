@@ -4,15 +4,15 @@ compEQ
 jnz l0 
 push 2
 compEQ 
-jnz l0 
+jnz l1 
 push a
 push g
 compL 
-jnz l0 
+jnz l2 
 push o
 push j
 compEQ 
-jz l1 
+jz l3 
 push 2
 push l
 compLE 
