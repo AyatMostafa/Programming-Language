@@ -211,9 +211,9 @@ stmtlist:  line
           | stmtlist line 
 		  ;	
 
-func_p1: type identifier OPENBRACKET argList CLOSEBRACKET 
+func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 		{
-		
+			
 			if (current->id != 0){
 				yyerror("Function can only be declared globally!");
 				return;
@@ -228,19 +228,16 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
-func_p2: func_p1 start_block stmtlist return SEMICOLON
- {try("PROC", $2,"");printf("function\n");}; 
-
-return: RET expression     			    {try("RET","", "");}
-		|RET                            {try("RET","", "");}
+func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
+ { try("RET","",""); printf("function\n");}; 
 
 
 
 many_identifiers:
 				identifier {if(check_func(get_symbol($1))==0) return;}
 				|identifier COMMA many_identifiers {if(check_func(get_symbol($1))==0) return;};
-func_call_p1: identifier OPENBRACKET {$$=try("CALL",$1,""); }
-			{
+func_call_p1: identifier OPENBRACKET {try("CALL",$1,"");}
+			{	
 				int found = 0;
 				for(int i=0; i<BRANCHFACTOR; i++)
 					if(function_table[i] && strcmp(function_table[i], $1)==0)
@@ -442,6 +439,20 @@ void printQuad(){
 		else if(arr[i]=="case"){
 			printQuadSwitchcases(arr[i+1]);
 			i+=1;
+		}
+		else if(arr[i]=="PROC"){
+			fprintf (fp, "PROC %s\n",arr[i+1]);
+			i+=1;
+		}
+		else if(arr[i]=="RET"){
+			 fprintf (fp, "RET \n");
+			
+			
+		}
+		else if(arr[i]=="CALL"){
+			 fprintf (fp, "CALL %s\n",arr[i+1]);
+			 
+			
 		}
 	}
 }
@@ -680,45 +691,10 @@ double log10( double x ) {
 }
 
 
-bool return_stmt( char* func_type, char* type_id){
-if(type_id==NULL){
-	printf("return stmt \n");
-}
-}
 
-node *opr(int oper, int nops, ...) {
-    va_list ap;
-    node *p;
-    int i;
 
-    /* allocate node, extending op array */
-    if ((p = malloc(sizeof(node) + (nops-1) * sizeof(node *))) == NULL)
-        yyerror("out of memory");
 
-    /* copy information */
-    p->type = typeOpr;
-    p->opr.oper = oper;
-    p->opr.nops = nops;
-    va_start(ap, nops);
-    for (i = 0; i < nops; i++)
-        p->opr.op[i] = va_arg(ap, node*);
-    va_end(ap);
-    return p;
-}
 
-node *con(int value) {
-    node *p;
-
-    /* allocate node */
-    if ((p = malloc(sizeof(node))) == NULL)
-        yyerror("out of memory");
-
-    /* copy information */
-    p->type = typeCon;
-    p->con.value = value;
-
-    return p;
-}
 /*
 void new_define(){
 	if(arg_size != 0){
