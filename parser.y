@@ -110,7 +110,7 @@ void unused_symbols();
 %token SHR
 
 %type <string>    expression expression1 expression2 expression3 
-%type<char> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
+%type<id> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
 %type <string> type
 %%
 
@@ -211,8 +211,9 @@ stmtlist:  line
           | stmtlist line 
 		  ;	
 
-func_p1: type identifier OPENBRACKET argList CLOSEBRACKET 
+func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 		{
+			
 			if (current->id != 0){
 				yyerror("Function can only be declared globally!");
 				return;
@@ -227,12 +228,16 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
-func_p2: func_p1 start_block stmtlist RET expression SEMICOLON {printf("function\n");}; 
+func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
+ { try("RET","",""); printf("function\n");}; 
+
+
+
 many_identifiers:
 				identifier {if(check_func(get_symbol($1))==0) return;}
 				|identifier COMMA many_identifiers {if(check_func(get_symbol($1))==0) return;};
-func_call_p1: identifier OPENBRACKET 
-			{
+func_call_p1: identifier OPENBRACKET {try("CALL",$1,"");}
+			{	
 				int found = 0;
 				for(int i=0; i<BRANCHFACTOR; i++)
 					if(function_table[i] && strcmp(function_table[i], $1)==0)
@@ -312,13 +317,13 @@ expression1:  expression '+' expression     {try("Add", $1, $3); }
 			| expression SHR expression	  {try("SHR", $1, $3);}
     ;
 
-expression2:   INC expression3     {try("INC", "1", $2);}
+expression2:   INC expression3     {try("INC", $2, "");}
 			|  expression3 INC	   
-			|  DEC expression3	   {try("DEC", "1", $2); }
+			|  DEC expression3	   {try("DEC", $2, ""); }
 			|  expression3 DEC	  
 			|  '~' expression
-			|  '!' expression	   {try("NOT", "$2", "");}
-			|  '-' expression	   {try("NEG", "$2", "");}
+			|  '!' expression	   {try("NOT", $2, "");}
+			|  '-' expression	   {try("NEG", $2, "");}
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET
@@ -434,6 +439,20 @@ void printQuad(){
 		else if(arr[i]=="case"){
 			printQuadSwitchcases(arr[i+1]);
 			i+=1;
+		}
+		else if(arr[i]=="PROC"){
+			fprintf (fp, "PROC %s\n",arr[i+1]);
+			i+=1;
+		}
+		else if(arr[i]=="RET"){
+			 fprintf (fp, "RET \n");
+			
+			
+		}
+		else if(arr[i]=="CALL"){
+			 fprintf (fp, "CALL %s\n",arr[i+1]);
+			 
+			
 		}
 	}
 }
@@ -670,3 +689,18 @@ double ln(double x)
 double log10( double x ) {
     return ln(x) / LN10;    
 }
+
+
+
+
+
+
+/*
+void new_define(){
+	if(arg_size != 0){
+		yyerror("Missing another argument(s)!\n");
+		return;
+		}
+	func_call_node = 0;
+	printf("Function Call\n");
+}*/

@@ -1,18 +1,6 @@
-push q
-push 1
-compEQ 
-jnz l0 
-push 2
-compEQ 
-jnz l1 
-push a
-push g
-compL 
-jnz l2 
-push o
-push j
-compEQ 
-jz l3 
-push 2
-push l
-compLE 
+PROC fun
+jz l0 
+Pop x
+RET 
+CALL fun
+Pop u
