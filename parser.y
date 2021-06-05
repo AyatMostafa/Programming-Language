@@ -13,11 +13,16 @@ int yylex();
 #define FUNC_Args 10
 #define LN10 2.3025850929940456840179914546844
 
-double ln(double x);
-double log10( double x );
-char * toArray(int number);
+FILE * fp;
+int label=0;
 char*arr[100000];
 int idx = 0;
+double ln(double x);
+void jmpNewLabel(int notCond);
+double log10( double x );
+char * toArray(int number);
+void printQuad();
+void printQuadComp(char* s1, char* s2, char* s3);
 void try(char*operation,char* arg1, char*arg2);
 int level = 0;
 int node_counter;
@@ -172,11 +177,11 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;}//try("",toArray($1),"");} 
-		  | Float_value {;}
-		  | Char_value{;printf($1);char *ptr = malloc(2*sizeof(char));ptr[0] = $1;ptr[1] = '\0';try("",ptr,""); }
+term	: integer_value {;try("",toArray($1),"");} 
+		  | Float_value {; char buf[1000];gcvt($1, 6, buf);printf(buf);try("",buf,"");}
+		  | Char_value{;printf('%c',$1);/*try("",ptr,""); */}
 		  | String_value{;try("",$1,""); }
-		  | FALSE{;}
+		  | FALSE{;try("","false","");}
 		  | TRUE {;try("","true",""); }
 	;
 
@@ -273,14 +278,14 @@ comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","",""
 if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} line end_block
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
 cond :  identifier comparison_OP identifier {try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
-bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET | OPENBRACKET ifExpr CLOSEBRACKET 
-notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET | NOT OPENBRACKET logical_exp CLOSEBRACKET | NOT OPENBRACKET term CLOSEBRACKET | NOT OPENBRACKET identifier CLOSEBRACKET | NOT OPENBRACKET ifExpr CLOSEBRACKET
+bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
+notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
 elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {try("elseif","","");printf("else if condition ");}
-else : ELSE start_block line end_block{printf("else\n");}
+else : ELSE start_block line end_block{try("elseif","","");printf("else\n");}
 
-switch : SWITCH OPENBRACKET identifier CLOSEBRACKET start_block cases end_block
+switch : SWITCH OPENBRACKET identifier {try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
 cases : case | case cases
-case :  CASE term COLON line BREAK SEMICOLON  | CASE term COLON line  | CASE term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
+case :  CASE {try("case","","");} term COLON line BREAK SEMICOLON | CASE {try("case","","");} term COLON line | CASE {try("case","","");} term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
 	;
 
 while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n");} 
@@ -336,6 +341,7 @@ for_initi_stat :  type identifier ASSIGN term
 %%                     /* C code */
 
 int main (void) {
+	fp = fopen ("quad.txt","w");
 	/* init symbol table */
 	root = malloc(sizeof (node));
 	node_counter = 0;
@@ -351,9 +357,64 @@ int main (void) {
 	}
 	int x;
 	scanf("%d", &x);
+	printQuad();
+	fclose (fp);
 	return 0;
 }
 
+void printQuadComp(char* s1, char* s2, char* s3){
+	fprintf (fp, "push %s\n",s2);
+	fprintf (fp, "push %s\n",s3);
+	if (s1=="EE") fprintf (fp, "compEQ \n");
+	else if (s1=="NE") fprintf (fp, "compNEQ \n");
+	else if (s1=="LE") fprintf (fp, "compLE \n");
+	else if (s1=="GE") fprintf (fp, "compGE \n");
+	else if (s1=="G") fprintf (fp, "compG \n");
+	else fprintf (fp, "compL \n"); 
+}
+
+void printQuadSwitchcases(char*c){
+	fprintf (fp, "push %s\n",c);
+	fprintf (fp, "compEQ \n");
+	fprintf (fp, "jnz l%d \n",label); //nz as I'll make the quad will be directlu under it if they are eual, so if not equal, jump to the other comparison
+	label+=1;
+}
+
+void jmpNewLabel(int notCond){
+	if(notCond){
+		fprintf (fp, "jnz l%d \n",label);
+	}
+	else{
+		fprintf (fp, "jz l%d \n",label);
+	}
+	label+=1;
+}
+
+void printQuad(){
+	int notCond=0;
+	int endSwitchCond=0;
+	for (int i=0;i<idx;++i){
+		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
+			printQuadComp(arr[i],arr[i+1],arr[i+2]);
+			i+=2;
+		}
+		else if(arr[i]=="if" || arr[i]=="elseif"){
+			jmpNewLabel(notCond);
+			notCond=0;
+		}
+		else if(arr[i]=="not"){
+			notCond=1;
+		}
+		else if(arr[i]=="switch"){
+			fprintf (fp, "push %s\n",arr[i+1]);
+			i+=1;
+		}
+		else if(arr[i]=="case"){
+			printQuadSwitchcases(arr[i+1]);
+			i+=1;
+		}
+	}
+}
 
 try(char*operation,char* arg1, char*arg2){
 	if (operation != ""){
