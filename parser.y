@@ -206,6 +206,7 @@ stmtlist:  line
 
 func_p1: type identifier OPENBRACKET argList CLOSEBRACKET 
 		{
+		
 			if (current->id != 0){
 				yyerror("Function can only be declared globally!");
 				return;
@@ -220,7 +221,14 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
-func_p2: func_p1 start_block stmtlist RET expression SEMICOLON {printf("function\n");}; 
+func_p2: func_p1 start_block stmtlist return SEMICOLON
+ {printf("function\n");}; 
+
+return: RET expression     			    {$$ = opr(RET, 1,$1, $2);}
+		|RET                            {$$ = opr(RET, 2, $1, NULL);}
+
+
+
 many_identifiers:
 				identifier {if(check_func(get_symbol($1))==0) return;}
 				|identifier COMMA many_identifiers {if(check_func(get_symbol($1))==0) return;};
@@ -585,3 +593,53 @@ double ln(double x)
 double log10( double x ) {
     return ln(x) / LN10;    
 }
+
+
+bool return_stmt( char* func_type, char* type_id){
+if(type_id==NULL){
+	printf("return stmt \n");
+}
+}
+
+node *opr(int oper, int nops, ...) {
+    va_list ap;
+    node *p;
+    int i;
+
+    /* allocate node, extending op array */
+    if ((p = malloc(sizeof(node) + (nops-1) * sizeof(node *))) == NULL)
+        yyerror("out of memory");
+
+    /* copy information */
+    p->type = typeOpr;
+    p->opr.oper = oper;
+    p->opr.nops = nops;
+    va_start(ap, nops);
+    for (i = 0; i < nops; i++)
+        p->opr.op[i] = va_arg(ap, node*);
+    va_end(ap);
+    return p;
+}
+
+node *con(int value) {
+    node *p;
+
+    /* allocate node */
+    if ((p = malloc(sizeof(node))) == NULL)
+        yyerror("out of memory");
+
+    /* copy information */
+    p->type = typeCon;
+    p->con.value = value;
+
+    return p;
+}
+/*
+void new_define(){
+	if(arg_size != 0){
+		yyerror("Missing another argument(s)!\n");
+		return;
+		}
+	func_call_node = 0;
+	printf("Function Call\n");
+}*/
