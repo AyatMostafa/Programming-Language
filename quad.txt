@@ -1,6 +1,0 @@
-PROC sum
-Pop x
-Pop y
-Pop d
-RET 
-CALL sum
