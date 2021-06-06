@@ -45,7 +45,8 @@ int yylex();
 "=="            {return EE;}
 "!="		   {return NE;}
 
-"&&" | "||"                        {return IfFiller;}
+"&&"                         {return AndAnd;}
+"||"                         {return OrOr;}
 "++"                         {return INC;}
 "--" 			             {return DEC;}
 "<<"                         {return SHL;}

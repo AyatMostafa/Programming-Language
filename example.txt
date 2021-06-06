@@ -1,0 +1,55 @@
+if(a>b){
+    if(c<=2){
+        
+    }
+}
+if (a==2 && b<c){
+
+}
+else if(v>=5 || f==g){
+
+}
+else{
+
+}
+
+// not working
+if(a>b){
+    if(c<=2){
+        int v = 5;
+    }
+}
+if (a==2 && b<c){
+    int l = 5;
+}
+else if(v>=5 || f==g){
+    int z = 5;
+}
+else{
+    int o = 5;
+}
+
+
+switch (a){
+    case 1:
+        break;
+    case 2:
+        break;
+    default:
+        break;
+}
+
+// not working
+switch (a){
+    case 1:
+        int l=1;
+        break;
+    case 2:
+        int l=2;
+        break;
+    default:
+        int l = 0;
+        break;
+}
+
+jbgjff;

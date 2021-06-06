@@ -16,7 +16,6 @@ extern int yylineno;
 FILE * fp;
 int label=0;
 char*arr[100000];
-char* organzed[10];
 int idx = 0;
 double ln(double x);
 void jmpNewLabel(int notCond);
@@ -60,7 +59,8 @@ char* syntax_error_handler(int);
 %token RET
 %token BREAK
 %token <string>ASSIGN
-%token IfFiller
+%token AndAnd
+%token OrOr
 %token While
 %token Do_While
 %token logical_OP
@@ -121,9 +121,7 @@ line	:
 		|line else {;}
 		|line elseIf {;} 
 		|switch {;}
-		|case {;}
 		|line switch {;}
-		|line case {;}
 		| for {;}
 		| line for {;}
 		| expression {;}
@@ -273,9 +271,9 @@ variable : type identifier ASSIGN expression SEMICOLON
 			  	if( $4 == $5)
 				  {
 					try("Single" , $4, "");
-					printf("YES");
-				  }
-					
+					// printf("YES \n");
+					// printf($4);
+				  }	
 				try("POP", $2, ""); 
 				// printf($4); printf("\n"); printf($5); printf("\n"); printf($3);
 			}
@@ -297,17 +295,19 @@ definition 	: identifier ASSIGN expression SEMICOLON
 logical_exp : identifier comparison_OP term {try("",$1,"");};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} line end_block
+if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} stmtlist end_block
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
 cond :  identifier comparison_OP identifier {try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
 bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
 notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
-elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {try("elseif","","");printf("else if condition ");}
-else : ELSE start_block line end_block{try("elseif","","");printf("else\n");}
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} start_block stmtlist end_block
+else : ELSE start_block stmtlist end_block{printf("else\n");}
+
+IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
 switch : SWITCH OPENBRACKET identifier {try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
-cases : case | case cases
-case :  CASE {try("case","","");} term COLON line BREAK SEMICOLON | CASE {try("case","","");} term COLON line | CASE {try("case","","");} term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
+cases : DEFAULT {printf("HI2");} COLON stmtlist BREAK SEMICOLON {printf("HI4");} | case cases
+case : CASE {try("case","","");} term COLON stmtlist BREAK SEMICOLON {printf("HI1");}
 	;
 
 while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n");} 
@@ -319,21 +319,64 @@ dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRAC
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     { try("Add", $1, $3); try("", $$, ""); printf($$);}
-			| expression '-' expression     { try("SUB", $1, $3); try("", $$, ""); printf($$);}
-			| expression '*' expression	    { try("MUL", $1, $3); try("", $$, ""); printf($$);}
-			| expression '/' expression	    { try("DIV", $1, $3); try("", $$, ""); printf($$);}
-			| expression '%' expression	    { try("MOD", $1, $3); try("", $$, ""); }
+expression1:  expression '+' expression     {   char* t  = get_symbol($1); 
+												char* t1 = get_symbol($3);
+												printf("\ type of 1st %s and 2nd operand %s  \n", t , t1);
+												if( t == t1 ){
+													try("Add", $1, $3); try("", $$, ""); printf($$);}
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+											}
+
+			| expression '-' expression     {  if(get_symbol($1) == get_symbol($3)){
+													try("SUB", $1, $3); try("", $$, ""); printf($$);}
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+											}
+
+			| expression '*' expression	    {   if(get_symbol($1) == get_symbol($3)){
+													try("MUL", $1, $3); try("", $$, ""); printf($$);}
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+											}
+			| expression '/' expression	    {   if(get_symbol($1) == get_symbol($3)){
+													try("DIV", $1, $3); try("", $$, ""); printf($$);}
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+											}
+			
+			| expression '%' expression	    {   if(get_symbol($1) == get_symbol($3)){
+													try("MOD", $1, $3); try("", $$, "");}
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+											}
+
+			| expression SHL expression	    {   if(get_symbol($1) == get_symbol($3)){
+													try("SHL", $1, $3); try("", $$, "");	}											
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+										    }											
+			| expression SHR expression	    {   if(get_symbol($1) == get_symbol($3)){
+													try("SHR", $1, $3); try("", $$, "");	}											
+												else{
+													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+												}
+										}
 			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
 			| expression IfFiller expression
 			| expression comparison_OP expression
-			| expression SHL expression	  { try("SHL", $1, $3); try("", $$, "");}
-			| expression SHR expression	  { try("SHR", $1, $3); try("", $$, "");}
+			
     ;
 
-expression2:   INC expression3 %prec PRE_INC   {try("INC", $2, ""); try("", $$, "");}
+expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
 			|  expression3 INC %prec SUF_INC 	   
 			|  DEC expression3 %prec PRE_DEC   {try("DEC", $2, ""); try("", $$, "");}
 			|  expression3 DEC %prec SUF_DEC	  
@@ -344,7 +387,7 @@ expression2:   INC expression3 %prec PRE_INC   {try("INC", $2, ""); try("", $$, 
 
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 			| term			
-			| identifier	{get_symbol($1);  $$ = $1; printf($$); }	
+			| identifier	{get_symbol($1);  $$ = $1; printf("\ type of variable %s is %s \n", $1 , get_symbol($1));}	
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -376,10 +419,8 @@ int main (void) {
 	print_symbol_table();
 	for(int i=0; i<idx;++i){
 		printf(arr[i]); 
-		printf("  ");
+		//printf("  ");
 	}
-	int x;
-	scanf("%d", &x);
 	printQuad();
 	fclose (fp);
 	return 0;
@@ -402,7 +443,7 @@ void printQuadExpress(char* s1, char* s2, char* s3, int i){
 	else if(s1 == "Single")
 		fprintf (fp, "push %s\n",s2);	
 	else{
-		if(i <= 3)
+		if(i < 3)
 		{
 			fprintf (fp, "push %s\n",s2);
 			if(s3 != NULL)
@@ -414,8 +455,12 @@ void printQuadExpress(char* s1, char* s2, char* s3, int i){
 		bool flagS2 = true, flagS3 = true;
 		for(int k = i; k >= 0; k -= 4)
 		{
-			if(arr[k-4] == "Add"|| arr[k-4] == "SUB" || arr[k-4]  == "MUL" || arr[k-4]  == "DIV" || arr[k-4]  == "MOD" || arr[k-4]  == "SHL" || arr[k-4] == "SHR" ||
-				arr[k-4] == "INC" || arr[k-4] == "DEC" || arr[k-4] == "NOT" || arr[k-4] == "NEG")
+			if(arr[k-3] == "INC" || arr[k-3] == "DEC" || arr[k-3] == "NOT" || arr[k-3] == "NEG")
+			{
+				if(s2 == arr[k-1])
+					flagS2 = false;
+			}
+			else if(arr[k-4] == "Add"|| arr[k-4] == "SUB" || arr[k-4]  == "MUL" || arr[k-4]  == "DIV" || arr[k-4]  == "MOD" || arr[k-4]  == "SHL" || arr[k-4] == "SHR")
 			{
 				if(s2 == arr[k-1])
 					flagS2 = false;
@@ -481,6 +526,7 @@ void printQuadArgs(char*c, int iter){
 void printQuad(){
 	int notCond=0;
 	int endSwitchCond=0;
+	int andLabel=-1;
 	for (int i=0;i<idx;++i){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
@@ -492,11 +538,19 @@ void printQuad(){
 		}
 		else if(arr[i] == "INC" || arr[i] == "DEC" || arr[i] == "NOT" || arr[i] == "NEG" || arr[i] == "POP" || arr[i] == "Single"){
 			printQuadExpress(arr[i], arr[i+1], NULL, i);
-			i += 1;
+			i += 2;
 		}
 		else if(arr[i]=="if" || arr[i]=="elseif"){
 			jmpNewLabel(notCond);
 			notCond=0;
+			andLabel=-1;
+		}
+		else if(arr[i]=="AndAnd"){
+			if(andLabel==-1)andLabel=label++;
+			fprintf (fp, "jnz l%d \n",andLabel);
+		}
+		else if (arr[i]=="OrOr"){
+			fprintf (fp, "jz l%d \n",label);
 		}
 		else if(arr[i]=="not"){
 			notCond=1;
