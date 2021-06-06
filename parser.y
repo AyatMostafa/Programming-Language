@@ -207,14 +207,14 @@ type : CHAR
 	 | BOOL
 	 | VOID
 	 ;
-argList: type identifier cont	{
+argList: type identifier cont	{try("Args",$2,"");}{
 								cur_func_args[cur_func_args_num] = $1;
 								cur_func_names[cur_func_args_num] = $2;
 								cur_func_args_num += 1;
 								}
         |
 ;
-cont: COMMA type identifier cont{
+cont: COMMA type identifier cont {try("Args",$3,"");}{
 								cur_func_args[cur_func_args_num] = $2;
 								cur_func_names[cur_func_args_num] = $3;
 								cur_func_args_num += 1;
@@ -248,10 +248,27 @@ func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
 
 
 many_identifiers:
-				identifier {if(check_func(get_symbol($1))==0) return;}
-				|identifier COMMA many_identifiers {if(check_func(get_symbol($1))==0) return;};
-func_call_p1: identifier OPENBRACKET {try("CALL",$1,"");}
-			{	
+				identifier {
+					if(check_func(get_symbol($1))==0) {
+						return;
+					}
+					else {
+						try("params",$1,"");
+					}
+					
+				}
+				|identifier COMMA many_identifiers {
+					if(check_func(get_symbol($1))==0){
+						return;
+					}
+					else{
+						try("params",$1,"");
+					} 
+				}
+				|;
+
+func_call_p1: identifier OPENBRACKET 
+			{	try("CALL",$1,"");
 				int found = 0;
 				for(int i=0; i<BRANCHFACTOR; i++)
 					if(function_table[i] && strcmp(function_table[i], $1)==0)
@@ -496,6 +513,7 @@ void printQuadSwitchcases(char*c){
 	label+=1;
 }
 
+
 void jmpNewLabel(int notCond){
 	if(notCond){
 		fprintf (fp, "jnz l%d \n",label);
@@ -505,6 +523,32 @@ void jmpNewLabel(int notCond){
 	}
 	label+=1;
 }
+
+
+void printQuadArgs(char*c, int iter){
+	iter=iter-2;
+	for(int i=iter;i>=0;i-=2){
+		if(arr[i]=="Args"){
+			fprintf (fp, "Pop %s\n",arr[i+1]);
+		}
+	}
+
+
+
+	/*int args=0;
+	int start=iter;
+	while(arr[iter]=="Args"){
+		iter+=1;
+		args+=1;
+	}
+	fprintf (fp, "PROC %s\n",arr[iter+1]);
+	for(int i=args*2-1;i>start;i-=2){
+		printf (fp, "Pop %s\n",arr[i]);
+	}
+	return args*2;*/
+}
+
+
 
 void printQuad(){
 	int notCond=0;
@@ -539,6 +583,7 @@ void printQuad(){
 		}
 		else if(arr[i]=="PROC"){
 			fprintf (fp, "PROC %s\n",arr[i+1]);
+			printQuadArgs(arr[i],i);
 			i+=1;
 		}
 		else if(arr[i]=="RET"){
@@ -548,9 +593,13 @@ void printQuad(){
 		}
 		else if(arr[i]=="CALL"){
 			 fprintf (fp, "CALL %s\n",arr[i+1]);
-			 
-			
+			 i+=1;
 		}
+		else if(arr[i]=="params"){
+			fprintf (fp, "push %s\n",arr[i+1]);
+			i+=1; 
+		}
+	
 	}
 }
 
