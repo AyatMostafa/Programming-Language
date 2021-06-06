@@ -1,6 +1,6 @@
-PROC fun
-jz l0 
+PROC sum
 Pop x
+Pop y
+Pop d
 RET 
-CALL fun
-Pop u
+CALL sum
