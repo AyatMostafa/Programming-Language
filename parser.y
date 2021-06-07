@@ -28,6 +28,8 @@ void printQuadExpress(char* s1, char* s2, char* s3, int i);
 void try(char*operation,char* arg1, char*arg2);
 int level = 0;
 int node_counter;
+
+
 typedef struct symbol{
 	char* symbol_id;
 	char* type;
@@ -60,6 +62,17 @@ void new_block();
 int declare_symbol(char*, char*, int, char*, int);
 char* get_symbol(char* id);
 void unused_symbols();
+char* gType = " ";
+// typedef enum nodeEnumType{ CHAR, INT, FLOAT, STRING } nodeEnumType;
+// typedef struct exprtype {
+// 	nodeEnumType type;
+//     union value{
+// 		char charVal;
+// 		int intVal;
+// 		float floatval;
+// 		char * stringval;
+// 	} value;
+// } exprtype;
 %}
 
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
@@ -110,8 +123,8 @@ void unused_symbols();
 %token SHL
 %token SHR
 
-%type <string>    expression expression1 expression2 expression3 
-%type<id> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
+%type <string>  expression expression1 expression2 expression3 
+%type<string> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
 %type <string> type
 
 // Precedence
@@ -295,29 +308,33 @@ func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON {func_call_ha
 			
 constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("POP", $3, "");}}
 variable : type identifier ASSIGN expression SEMICOLON 
-		  	{	printf("declaration and assignment\n");
+		  	{	
+				assign_symbol($2, gType);  
+				printf("declaration and assignment\n");
 			  	if( $4 == $5)
 				  {
 					try("Single" , $4, "");
 					// printf("YES \n");
-					// printf($4);
 				  }	
 				try("POP", $2, ""); 
-				// printf($4); printf("\n"); printf($5); printf("\n"); printf($3);
+				gType = " ";
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
-					assign_symbol($1, "int"); 
+					assign_symbol($1, gType); 
 					printf("definition\n");
+					gType = " ";
 				} 
 			| identifier ASSIGN identifier SEMICOLON 
 				{
 					char* t = get_symbol($3);
+					printf("\ type of variable %s is %s \n", $3 , get_symbol($3));
 					if(strcmp(t, "None") == 0) 
 						return;
 					else 
 						assign_symbol($1, t);
+					gType = " ";	
 				}
 logical_exp : identifier comparison_OP term {try("",$1,"");printf("logical expression \n");}
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
@@ -344,61 +361,26 @@ dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRAC
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     {   char* t  = get_symbol($1); 
-												char* t1 = get_symbol($3);
-												printf("\ type of 1st %s and 2nd operand %s  \n", t , t1);
-												if( t == t1 ){
-													try("Add", $1, $3); try("", $$, ""); printf($$);}
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-											}
+expression1:  expression '+' expression     { 	try("Add", $1, $3); try("", $$, ""); printf($$); }
 
-			| expression '-' expression     {  if(get_symbol($1) == get_symbol($3)){
-													try("SUB", $1, $3); try("", $$, ""); printf($$);}
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-											}
+			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); printf($$);}
 
-			| expression '*' expression	    {   if(get_symbol($1) == get_symbol($3)){
-													try("MUL", $1, $3); try("", $$, ""); printf($$);}
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-											}
-			| expression '/' expression	    {   if(get_symbol($1) == get_symbol($3)){
-													try("DIV", $1, $3); try("", $$, ""); printf($$);}
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-											}
+			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); printf($$);}
+												
+			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); printf($$);}
+												
 			
-			| expression '%' expression	    {   if(get_symbol($1) == get_symbol($3)){
-													try("MOD", $1, $3); try("", $$, "");}
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-											}
+			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, "");}
+												
 
-			| expression SHL expression	    {   if(get_symbol($1) == get_symbol($3)){
-													try("SHL", $1, $3); try("", $$, "");	}											
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-										    }											
-			| expression SHR expression	    {   if(get_symbol($1) == get_symbol($3)){
-													try("SHR", $1, $3); try("", $$, "");	}											
-												else{
-													yyerror("Different types of operands \n");	printf("Different types of operands  \n");
-												}
-										}
+			| expression SHL expression	    {   try("SHL", $1, $3); try("", $$, "");	}											
+																						
+			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, "");	}
 			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
 			| expression IfFiller expression
 			| expression comparison_OP expression
-			
     ;
 
 expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
@@ -411,8 +393,48 @@ expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$,
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
-			| term			
-			| identifier	{get_symbol($1);  $$ = $1; printf("\ type of variable %s is %s \n", $1 , get_symbol($1));}	
+			| integer_value   { //printf($1);
+								//itoa($1,$$,10);
+								printf("\ integer \n");
+								if(gType == " ")
+									gType = "int";
+								else if( strcmp("int", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+							}	
+			| Char_value      {$$ = $1; printf("\ char value \n");
+								if(gType == " ")
+									gType = "char";
+								else if( strcmp("char", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}}
+			| Float_value     {  printf("\ float value \n");
+									if(gType == " ")
+									gType = "float";
+								else if( strcmp("float", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+							}
+			| String_value  {	printf("\ string value %s \n", $$);
+								if(gType == " ")
+									gType = "string";
+								else if( strcmp("string", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+							}
+			| identifier	  {$$ = $1; printf("\ identifier name is %s \n",  $1);
+								if(gType == " ")
+									gType = get_symbol($1);
+								else if( strcmp(get_symbol($1), gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+								//printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+							}	
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -736,7 +758,7 @@ char* get_symbol(char* id){
 		char Output[MAX_STR_LEN];
 		sprintf(Output, "%s%s%s", "identifier ", id,  " is not yet initialized!\n");
 		yyerror(Output);
-		return "None";
+		return symbol_node->symbols[*index].type;
 	}
 	else
 		return symbol_node->symbols[*index].type;
