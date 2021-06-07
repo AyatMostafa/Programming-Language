@@ -17,6 +17,8 @@ FILE * fp;
 int label=0;
 char*arr[100000];
 int idx = 0;
+char*termType;
+char*switchVariableType;
 double ln(double x);
 void jmpNewLabel(int notCond);
 double log10( double x );
@@ -44,6 +46,7 @@ char* gType = " ";
 char* syntax_error_handler(int);
 %}
 
+%define parse.error verbose
 %locations
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
@@ -172,12 +175,12 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;}//try("",toArray($1),"");}
-		  | Float_value {; char buf[1000];gcvt($1, 6, buf);printf(buf);try("",buf,"");}
-		  | Char_value{;printf('%c',$1);/*try("",ptr,""); */}
-		  | String_value{;try("",$1,""); }
-		  | FALSE{;try("","false","");}
-		  | TRUE {;try("","true",""); }
+term	: integer_value {;try("",toArray($1),"");termType="int";}
+		  | Float_value {; char buf[1000];gcvt($1, 6, buf);printf(buf);try("",buf,"");termType="float";}
+		  | Char_value{;printf('%c',$1);/*try("",ptr,""); termType="char";*/}
+		  | String_value{;try("",$1,""); termType="string";}
+		  | FALSE{;try("","false","");termType="false";}
+		  | TRUE {;try("","true",""); termType="true";}
 	;
 
 type : CHAR
@@ -304,22 +307,22 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						assign_symbol($1, t);
 					gType = " ";	
 				}
-logical_exp : identifier comparison_OP term {try("",$1,"");};
+logical_exp : identifier comparison_OP term {if(strcmp(get_symbol($1),termType)!=0){yyerror_semantic("Different types of operands \n");}else{try("",$1,"");}};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
 if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  stmtlist end_block {printf("if condition\n");}
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
-cond :  identifier comparison_OP identifier {if(get_symbol($1) != get_symbol($3)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try("",$1,$3);}} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
-bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(get_symbol($2) != get_symbol($4)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try("",$2,$4);}}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
-notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(get_symbol($3) != get_symbol($5)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try($3,$5,"not");}}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
+cond :  identifier comparison_OP identifier {if(strcmp(get_symbol($1),get_symbol($3))!=0){yyerror_semantic("Different types of operands \n");printf("Different types of operands \n");}else{try("",$1,$3);}} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
+bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($2),get_symbol($4))!=0){yyerror_semantic("Different types of operands \n");printf("Different types of operands \n");}else{try("",$2,$4);}}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
+notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($3),get_symbol($5))!=0){yyerror_semantic("Different types of operands \n");printf("Different types of operands \n");}else{try($3,$5,"not");}}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
 elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} start_block stmtlist end_block
 else : ELSE start_block stmtlist end_block{printf("else\n");}
 
 IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
-switch : SWITCH OPENBRACKET identifier {try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
+switch : SWITCH OPENBRACKET identifier {switchVariableType=get_symbol($3);try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
 cases : DEFAULT {printf("HI2");} COLON stmtlist BREAK SEMICOLON {printf("HI4");} | case cases
-case : CASE {try("case","","");} term COLON stmtlist BREAK SEMICOLON {printf("HI1");}
+case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON {printf("HI1");}
 	;
 
 while	: While {try("startWhile","","");} OPENBRACKET ifExpr {try("while","","");} CLOSEBRACKET whileCont1 
