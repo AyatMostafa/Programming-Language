@@ -215,3 +215,19 @@ void func_call_handler(){
 	func_call_node = 0;
 	printf("Function Call\n");
 }
+char* read_input_file(char* filename){
+	FILE *fp;
+	long lSize;
+	char *buffer;
+	fp = fopen ( filename , "rb" );
+	if( !fp ) perror(filename),exit(1);
+	fseek( fp , 0L , SEEK_END);
+	lSize = ftell( fp );
+	rewind( fp );
+	buffer = calloc( 1, lSize+1 );
+	if( !buffer ) fclose(fp),fputs("memory alloc fails",stderr),exit(1);
+	if( 1!=fread( buffer , lSize, 1 , fp) )
+	fclose(fp),free(buffer),fputs("entire read fails",stderr),exit(1);
+	fclose(fp);
+	return(buffer);
+}
