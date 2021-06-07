@@ -1,0 +1,11 @@
+push 5
+Pop a
+push 4
+Pop b
+push "hi"
+Pop f
+push c
+push d
+compG 
+jnz l0 
+jmp l1
