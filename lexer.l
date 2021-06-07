@@ -3,6 +3,7 @@
 void yyerror (char *s);
 int yylex();
 %}
+%option yylineno
 %%
 "int"               {yylval.string = strdup(yytext); return INT;}
 "float"             {yylval.string = strdup(yytext); return FLOAT;}
@@ -44,7 +45,8 @@ int yylex();
 "=="            {return EE;}
 "!="		   {return NE;}
 
-"&&" | "||"                        {return IfFiller;}
+"&&"                         {return AndAnd;}
+"||"                         {return OrOr;}
 "++"                         {return INC;}
 "--" 			             {return DEC;}
 "<<"                         {return SHL;}

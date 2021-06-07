@@ -1,5 +1,6 @@
 %{
 void yyerror (char *s);
+void yyerror_semantic (char * s);
 int yylex();
 #include <stdio.h>     /* C declarations used in actions */
 #include <stdlib.h>
@@ -7,11 +8,9 @@ int yylex();
 #include <string.h>
 #include <stdio.h>
 #include <math.h> 
-#include <stdbool.h>      
-#define BRANCHFACTOR 20
-#define NUMVARIABLES 50
-#define MAX_STR_LEN 100
-#define FUNC_Args 10
+#include <stdbool.h>
+#include "SymTable.c"  
+extern int yylineno;   
 #define LN10 2.3025850929940456840179914546844
 
 FILE * fp;
@@ -27,37 +26,6 @@ void printQuadComp(char* s1, char* s2, char* s3);
 void printQuadExpress(char* s1, char* s2, char* s3, int i);
 void try(char*operation,char* arg1, char*arg2);
 int level = 0;
-int node_counter;
-
-
-typedef struct symbol{
-	char* symbol_id;
-	char* type;
-	int initialized;
-	int isConst;
-} symbol;
-typedef struct node{
-	int id;
-	int num_children;
-	int num_symbols;
-	struct node* children[BRANCHFACTOR];
-	struct node* parent;
-	struct symbol symbols[NUMVARIABLES];
-
-	// in case of function only
-	int num_arguments;
-	char* argumet_types[FUNC_Args];
-	char* argumet_names[FUNC_Args];
-} node;
-node* root;
-node* current;
-int in_function = 0;
-char* function_table[BRANCHFACTOR];
-char* cur_func_args[FUNC_Args];
-char* cur_func_names[FUNC_Args];
-int cur_func_args_num = 0;
-int arg_size = -2;
-int func_call_node = -1;
 void new_block();
 int declare_symbol(char*, char*, int, char*, int);
 char* get_symbol(char* id);
@@ -73,8 +41,10 @@ char* gType = " ";
 // 		char * stringval;
 // 	} value;
 // } exprtype;
+char* syntax_error_handler(int);
 %}
 
+%locations
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
 %token <string> INT
@@ -99,7 +69,8 @@ char* gType = " ";
 %token RET
 %token BREAK
 %token <string>ASSIGN
-%token IfFiller
+%token AndAnd
+%token OrOr
 %token While
 %token Do_While
 %token logical_OP
@@ -150,8 +121,6 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
-		| end_block		    {;}
-		| line end_block	{;}
 		
 		|if {;}
 		|else {;}
@@ -160,9 +129,7 @@ line	:
 		|line else {;}
 		|line elseIf {;} 
 		|switch {;}
-		|case {;}
 		|line switch {;}
-		|line case {;}
 		| for {;}
 		| line for {;}
 		| expression {;}
@@ -194,9 +161,9 @@ start_block: '{'{
 				}
 	;
 end_block:	 '}'{
-					if(in_function == 1) 
+					if(in_function == 1 && current -> parent -> id == 0) 
 						in_function = 0; 
-					if (level == 0) yyerror("start scope first!\n"); 
+					if (level == 0) yyerror_semantic("start scope first!\n"); 
 					else{
 					int parID;
 					if(current->id == 1)  parID = -1; else parID = current->parent->id;
@@ -205,7 +172,7 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;try("",toArray($1),"");} 
+term	: integer_value {;}//try("",toArray($1),"");}
 		  | Float_value {; char buf[1000];gcvt($1, 6, buf);printf(buf);try("",buf,"");}
 		  | Char_value{;printf('%c',$1);/*try("",ptr,""); */}
 		  | String_value{;try("",$1,""); }
@@ -242,21 +209,21 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 		{
 			
 			if (current->id != 0){
-				yyerror("Function can only be declared globally!");
+				yyerror_semantic("Function can only be declared globally!");
 				return;
 			}
 			for(int i=0; i<BRANCHFACTOR; i++)
 				if(function_table[i] && strcmp(function_table[i], $2)==0){
 					char Output[MAX_STR_LEN];
 					sprintf(Output, "%s%s%s", "A function with name ", $2, " is already defined!\n");
-					yyerror(Output);
+					yyerror_semantic(Output);
 					return 0;
 				}
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
 func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
- { try("RET","",""); printf("function\n");}; 
+ {try("RET","",""); printf("function\n");}; 
 
 
 
@@ -289,7 +256,7 @@ func_call_p1: identifier OPENBRACKET
 				if (found != 1){
 					char Output[MAX_STR_LEN];
 					sprintf(Output, "%s%s", $1, " is not a function!\n");
-					yyerror(Output);
+					yyerror_semantic(Output);
 					return 0;
 				}
 				for(int i=0; i<BRANCHFACTOR; i++){
@@ -320,6 +287,7 @@ variable : type identifier ASSIGN expression SEMICOLON
 				gType = " ";
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
+
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
 					assign_symbol($1, gType); 
@@ -336,25 +304,28 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						assign_symbol($1, t);
 					gType = " ";	
 				}
-logical_exp : identifier comparison_OP term {try("",$1,"");printf("logical expression \n");}
+logical_exp : identifier comparison_OP term {try("",$1,"");};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} line end_block
+if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  stmtlist end_block {printf("if condition\n");}
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
-cond :  identifier comparison_OP identifier {try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
-bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
-notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
-elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {try("elseif","","");printf("else if condition ");}
-else : ELSE start_block line end_block{try("elseif","","");printf("else\n");}
+cond :  identifier comparison_OP identifier {if(get_symbol($1) != get_symbol($3)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try("",$1,$3);}} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
+bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(get_symbol($2) != get_symbol($4)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try("",$2,$4);}}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
+notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(get_symbol($3) != get_symbol($5)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try($3,$5,"not");}}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} start_block stmtlist end_block
+else : ELSE start_block stmtlist end_block{printf("else\n");}
+
+IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
 switch : SWITCH OPENBRACKET identifier {try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
-cases : case | case cases
-case :  CASE {try("case","","");} term COLON line BREAK SEMICOLON | CASE {try("case","","");} term COLON line | CASE {try("case","","");} term COLON BREAK SEMICOLON | DEFAULT COLON line BREAK SEMICOLON | DEFAULT COLON line | DEFAULT COLON BREAK SEMICOLON 
+cases : DEFAULT {printf("HI2");} COLON stmtlist BREAK SEMICOLON {printf("HI4");} | case cases
+case : CASE {try("case","","");} term COLON stmtlist BREAK SEMICOLON {printf("HI1");}
 	;
 
-while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n");} 
+while	: While {try("startWhile","","");} OPENBRACKET ifExpr {try("while","","");} CLOSEBRACKET whileCont1 
+whileCont1: '{'stmtlist'}' {try("endWhile","","");printf("whileLoop \n");}  
 	;
-dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
+dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhile","");} CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
 	;
 
 //----------------- mathematical and logical expression -----------
@@ -468,8 +439,6 @@ int main (void) {
 		printf(arr[i]); 
 		printf("  ");
 	}
-	int x;
-	scanf("%d", &x);
 	printQuad();
 	fclose (fp);
 	return 0;
@@ -571,10 +540,11 @@ void printQuadArgs(char*c, int iter){
 }
 
 
-
 void printQuad(){
 	int notCond=0;
 	int endSwitchCond=0;
+	int andLabel=-1;
+	int whileCond=0;
 	for (int i=0;i<idx;++i){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
@@ -588,8 +558,28 @@ void printQuad(){
 			printQuadExpress(arr[i], arr[i+1], NULL, i);
 			i += 2;
 		}
-		else if(arr[i]=="if" || arr[i]=="elseif"){
+		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
+			if(arr[i]=="while" && notCond==0){
+				notCond=1;
+				whileCond=0;
+			}
+			else if(arr[i]=="while" && notCond) {notCond=0;whileCond=0;}
 			jmpNewLabel(notCond);
+			notCond=0;
+			andLabel=-1;
+		}
+		else if(arr[i]=="startWhile") whileCond=1;
+		else if(arr[i]=="AndAnd"){
+			if(andLabel==-1)andLabel=label++;
+			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",andLabel);
+			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",andLabel+1);
+			else fprintf (fp, "jnz l%d \n",andLabel);
+			notCond=0;
+		}
+		else if (arr[i]=="OrOr"){
+			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",label);
+			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",label+1);
+			else fprintf (fp, "jz l%d \n",label);
 			notCond=0;
 		}
 		else if(arr[i]=="not"){
@@ -621,6 +611,10 @@ void printQuad(){
 			fprintf (fp, "push %s\n",arr[i+1]);
 			i+=1; 
 		}
+		else if(arr[i]=="endWhile"){
+			fprintf (fp, "jmp l%d\n",label);
+			label+=1;
+		}
 	
 	}
 }
@@ -637,191 +631,13 @@ try(char*operation,char* arg1, char*arg2){
 	}
 }
 
-void yyerror (char *s) {fprintf (stderr, "%s\n", s);}
-
-void new_block(){
-	node_counter += 1;
-	current->children[current->num_children] = malloc(sizeof (node));
-	current->children[current->num_children] -> id = node_counter;
-	current->children[current->num_children] -> num_children = 0;
-	current->children[current->num_children] -> num_symbols = 0;
-	current->children[current->num_children] -> parent = current;
-	if(in_function == 1){
-		current->children[current->num_children] -> num_arguments = cur_func_args_num;
-		for (int i=0; i< cur_func_args_num; i++){
-			current->children[current->num_children] -> argumet_types[i] = cur_func_args[i];
-			current->children[current->num_children] -> argumet_names[i] = cur_func_names[i];
-		}
-		cur_func_args_num = 0;
-	}
-	current->num_children += 1;
-	current = current->children[current->num_children - 1];	
+void yyerror (char *s) {
+	fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
 }
-int declare_symbol(char* id, char* type_id, int init, char* type_value, int isConstant){
-	if(in_function){
-		node* temp = current;
-		while(temp->parent->id != 0) temp = temp->parent;
-		for(int i=0; i< temp->num_arguments; i++)
-			if(strcmp(temp->argumet_names[i], id) == 0){
-			char Output[MAX_STR_LEN];
-			sprintf(Output, "%s%s%s", "can't declare ", id, " (Formal Parameter) !\n");
-			yyerror(Output);
-			return 0;
-			}
-	}
-	for (int i=0; i<current->num_symbols; i++)
-		if(strcmp(current->symbols[i].symbol_id, id) == 0){
-			char Output[MAX_STR_LEN];
-			sprintf(Output, "%s%s%s", "Identifier ", id, " is already declared in this scope!\n");
-			yyerror(Output);
-			return 0;
-		}
-	if(init == 1 && strcmp(type_id, type_value)!=0){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "Type mismatch while assigning ", id, "!\n");
-		yyerror(Output);
-		return 0;
-	}
-	//printf("type %s, id %s", type_id, id);
-	current->symbols[current->num_symbols].symbol_id = id;
-	current->symbols[current->num_symbols].type = type_id;
-	current->symbols[current->num_symbols].initialized = init;
-	current->symbols[current->num_symbols].isConst = isConstant;
-	current->num_symbols += 1;
-	return 1;
-}
-node* find_symbol(char* id, int* index){
-	*index = -1;
-	node* search_node = current;
-	while(1){
-		for (int i=0; i<search_node->num_symbols; i++){
-			if (strcmp(search_node->symbols[i].symbol_id, id) == 0){
-				*index = i;
-				return search_node;
-			}
-		}
-		if (search_node->id == 0)
-			return NULL;
-		search_node = search_node->parent;
-	}
-}
-int assign_symbol(char* id, char* data_type){
-	if(in_function){
-		node* temp = current;
-		while(temp->parent->id != 0) temp = temp->parent;
-		for(int i=0; i< temp->num_arguments; i++)
-			if(strcmp(temp->argumet_names[i], id) == 0)
-				return 1;
-	}
-	int* index = (int*) malloc (sizeof(int));
-	node* symbol_node = find_symbol(id, index);
-	if (symbol_node == NULL){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "Undeclared Identifier ", id, "!\n");
-		yyerror(Output);
-		return 0;
-	}
-	else if(symbol_node->symbols[*index].isConst == 1){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "Constant identifier ", id, " can't be re-assigned!\n");
-		yyerror(Output);
-		return 0;
-	}
-	else if(strcmp(symbol_node->symbols[*index].type, data_type)!= 0){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%S", "Type mismatch while assigning ", id, "!\n");
-		yyerror(Output);
-		return 0;
-	}
-	else{
-		symbol_node->symbols[*index].initialized = 1;
-		return 1;
-	}
-}
-char* get_symbol(char* id){
-	if(in_function){
-		node* temp = current;
-		while(temp->parent->id != 0) temp = temp->parent;
-		for(int i=0; i< temp->num_arguments; i++)
-			if(strcmp(temp->argumet_names[i], id) == 0)
-				return temp->argumet_types[i];
-	}
-	int* index = (int*) malloc (sizeof(int));
-	node* symbol_node = find_symbol(id, index);
-	if (symbol_node == NULL){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "Undeclared Identifier ", id, "!\n");
-		yyerror(Output);
-		return "None";
-	}
-	else if(symbol_node->symbols[*index].initialized != 1){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "identifier ", id,  " is not yet initialized!\n");
-		yyerror(Output);
-		return symbol_node->symbols[*index].type;
-	}
-	else
-		return symbol_node->symbols[*index].type;
-}
-void unused_symbols(){
-	for (int i=0; i<current->num_symbols; i++){
-		if (current->symbols[i].initialized != 1)
-			printf("Warning: Variable %s is declared but never used!\n", current->symbols[i].symbol_id);
-	}
-}
-int type_conversion(char* id, char* new_type){
-	int* index = (int*) malloc (sizeof(int));
-	node* symbol_node = find_symbol(id, index);
-	if (symbol_node == NULL){
-		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%s", "Undeclared Identifier ", id, "!\n");
-		yyerror(Output);
-		return 0;
-	}
-	else{
-		symbol_node->symbols[*index].type = new_type;
-		return 1;
-	}
-}
-void traverse_node(node* Node, FILE* fp, char* seq){
-	fprintf(fp, "{\n %s \n", seq);
-	for(int i=0; i < Node->num_symbols; i++){
-		fprintf(fp, "\t %s %s %d\n", Node->symbols[i].symbol_id, Node->symbols[i].type, Node->symbols[i].initialized);
-	}
-	fprintf(fp, "}\n");
-	for (int i=0; i < Node->num_children; i++){
-		char Output[10];
-		sprintf(Output, "%s.%d", seq, i, "!\n");
-		traverse_node(Node->children[i], fp, Output);
-	}
-}
-void print_symbol_table(){
-	FILE * fp;
-   	fp = fopen ("symbol_table.txt","w");
-	traverse_node(root, fp, "0");	
-   	fclose (fp);
+void yyerror_semantic(char *s) {
+	fprintf(stderr, s);
 }
 
-int check_func(char* type){
-	if(arg_size <= 0){
-	 	yyerror("Too much arguments!\n");
-		return 0;
-	}
-	if(strcmp(root->children[func_call_node]->argumet_types[arg_size-1], type) != 0){
-	  	yyerror("Invalid argument list!\n");
-	  	return 0;
-	}
-	arg_size -= 1;
-	return 1;
-}
-void func_call_handler(){
-	if(arg_size != 0){
-		yyerror("Missing another argument(s)!\n");
-		return;
-		}
-	func_call_node = 0;
-	printf("Function Call\n");
-}
 char * toArray(int number)
 {
     int n = log10(number) + 1;
@@ -858,7 +674,17 @@ double log10( double x ) {
     return ln(x) / LN10;    
 }
 
-
+char* syntax_error_handler(int err){
+	printf("yycahr value is %d %s", err, " ");
+	switch(err){
+		case 258: case 290: return "expecting a ';'!";
+		case 270: case 123: return "expecting a closing paranthesis or invalid definition!";
+		case 273: return "expecting an opening block {!";
+		case 274: return "expecting a logical expression!";
+		case -2: case 275: return "Mis-spelling or keyword fault!"; 
+		default: return "";
+	}
+}
 
 
 
