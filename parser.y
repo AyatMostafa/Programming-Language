@@ -13,6 +13,7 @@ int yylex();
 extern int yylineno;   
 #define LN10 2.3025850929940456840179914546844
 FILE* errorFile;
+
 FILE * fp;
 int label=0;
 char*arr[100000];
@@ -54,8 +55,8 @@ char* syntax_error_handler(int);
 %token <string> STRING
 %token <string> BOOL
 %token <string> CONST
-%token FALSE
-%token TRUE
+%token <string>FALSE
+%token <string>TRUE
 %token <string>SEMICOLON
 %token COMMA
 %token COLON
@@ -172,7 +173,7 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;try("",toArray($1),"");termType="int";}
+term	: integer_value {;printf(toArray($1));try("",toArray($1),"");termType="int";}
 		  | Float_value {; char buf[1000];gcvt($1, 6, buf);try("",buf,"");termType="float";}
 		  | Char_value{;printf('%c',$1);/*try("",ptr,""); termType="char";*/}
 		  | String_value{;try("",$1,""); termType="string";}
@@ -361,17 +362,18 @@ dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhil
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); printf($$);}
-			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); printf($$);}
-			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); printf($$);}
-			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); printf($$);}
-			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, "");}
+expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); }
+			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); }
+			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); }
+			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); }
+			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, ""); }
 			| expression SHL expression	    {  try("SHL", $1, $3); try("", $$, "");	}												
 			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, "");	}
 			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
-			| expression IfFiller expression
+			| expression AndAnd expression  {try("And", $1, $3);}
+			| expression OrOr expression    {try("Or", $1, $3);}
 			| expression comparison_OP expression
     ;
 
@@ -384,7 +386,7 @@ expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$,
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
-			| integer_value   { 
+			| integer_value   { //printf("\ integer value %i \n", $1);
 								$$ = toArray($1);
 								if(gType == " ")
 									gType = "int";
@@ -399,7 +401,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								str[0] = $1; 
 								str[1] = '\0'; 
 								$$ = str; 
-								printf("\ char value %s \n", $$);
+								// printf("\ char value %s \n", $$);
 								if(gType == " ")
 									gType = "char";
 								else if( strcmp("char", gType) != 0){
@@ -420,7 +422,9 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
+
 			| String_value  {
+
 								if(gType == " ")
 									gType = "string";
 								else if( strcmp("string", gType) != 0){
@@ -429,7 +433,32 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
-			| identifier	  {$$ = $1;
+
+			| FALSE         { 	$$ = "false";
+								//printf("\ bool value %s \n", $$);
+								if(gType == " ")
+									gType = "bool";
+								else if( strcmp("bool", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+								nops += 1;
+							}
+			| TRUE         { 	$$ = "true";
+								//printf("\ bool value %s \n", $$);
+								if(gType == " ")
+									gType = "bool";
+								else if( strcmp("bool", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+								nops += 1;
+							}
+						
+			| identifier	  {$$ = $1; 
+								// printf("\ identifier name is %s \n",  $1);
+							    // printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+								
 								if(gType == " ")
 									gType = get_symbol($1);
 								else if( strcmp(get_symbol($1), gType) != 0){
@@ -603,6 +632,13 @@ void printQuad(){
 			printQuadExpress(arr[i], arr[i+1], NULL, i);
 			i += 1;
 		}
+		else if(arr[i] == "And" || arr[i] == "Or")
+		{
+			fprintf (fp, "push %s\n", arr[i+1]);
+			fprintf (fp, "push %s\n", arr[i+2]);
+			fprintf (fp,  arr[i]); fprintf (fp, "\n");
+			i +=2;
+		}
 		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
 			if(arr[i]=="while" && notCond==0){
 				notCond=1;
@@ -614,7 +650,8 @@ void printQuad(){
 			andLabel=-1;
 		}
 		else if(arr[i]=="startWhile") whileCond=1;
-		else if(arr[i]=="AndAnd"){
+		else if(arr[i]=="AndAnd")
+		{
 			if(andLabel==-1)andLabel=label++;
 			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",andLabel);
 			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",andLabel+1);
@@ -690,41 +727,14 @@ void yyerror_semantic(char *s) {
 	fprintf(errorFile, s);
 }
 
-char * toArray(int number)
-{
-    int n = log10(number) + 1;
-    int i;
-    char *numberArray = calloc(n, sizeof(char));
-    for (i = n-1; i >= 0; --i, number /= 10)
-    {
-        numberArray[i] = (number % 10) + '0';
-    }
-    return numberArray;
+
+char* toArray(int number){
+	char text[20]; 
+	sprintf(text, "%d", number);   
+	return strdup(text);
 }
 
-double ln(double x)
-{
-    double old_sum = 0.0;
-    double xmlxpl = (x - 1) / (x + 1);
-    double xmlxpl_2 = xmlxpl * xmlxpl;
-    double denom = 1.0;
-    double frac = xmlxpl;
-    double term = frac;                 // denom start from 1.0
-    double sum = term;
 
-    while ( sum != old_sum )
-    {
-        old_sum = sum;
-        denom += 2.0;
-        frac *= xmlxpl_2;
-        sum += frac / denom;
-    }
-    return 2.0 * sum;
-}
-
-double log10( double x ) {
-    return ln(x) / LN10;    
-}
 
 char* syntax_error_handler(int err){
 	printf("yycahr value is %d %s", err, " ");
