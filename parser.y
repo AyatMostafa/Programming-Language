@@ -275,7 +275,7 @@ func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON {func_call_ha
 			
 constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("POP", $3, "");}}
 variable : type identifier ASSIGN expression SEMICOLON 
-		  	{	
+		  	{	declare_symbol($2, $1, 0, "", 0);
 				assign_symbol($2, gType);  
 				printf("declaration and assignment\n");
 			  	if( $4 == $5)
