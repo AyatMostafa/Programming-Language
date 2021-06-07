@@ -31,12 +31,13 @@ void new_block();
 int declare_symbol(char*, char*, int, char*, int);
 char* get_symbol(char* id);
 void unused_symbols();
+char* retType = " ";
 char* gType = " ";
 int  nops =0;
 char* syntax_error_handler(int);
 %}
 
-%define parse.error verbose
+//%define parse.error verbose
 %locations
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
@@ -52,8 +53,8 @@ char* syntax_error_handler(int);
 %token <string> STRING
 %token <string> BOOL
 %token <string> CONST
-%token FALSE
-%token TRUE
+%token <string>FALSE
+%token <string>TRUE
 %token <string>SEMICOLON
 %token COMMA
 %token COLON
@@ -114,6 +115,8 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
+		| end_block		{;}
+		| line end_block	{;}
 		
 		|if {;}
 		|else {;}
@@ -145,6 +148,8 @@ line	:
 		| line func_call_p1{;}
 		| func_call_p2{;}
 		| line func_call_p2{;}
+		|typeConversion{;}
+		|line typeConversion{;}
 	;
 
 start_block: '{'{
@@ -200,30 +205,37 @@ stmtlist:  line
 
 func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 		{
-			
+			retType=$1;
 			if (current->id != 0){
 				yyerror_semantic("Function can only be declared globally!");
-				return;
+				//return;
 			}
 			for(int i=0; i<BRANCHFACTOR; i++)
 				if(function_table[i] && strcmp(function_table[i], $2)==0){
 					char Output[MAX_STR_LEN];
 					sprintf(Output, "%s%s%s", "A function with name ", $2, " is already defined!\n");
 					yyerror_semantic(Output);
-					return 0;
+					//return 0;
 				}
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
-func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
- {try("RET","",""); printf("function\n");}; 
 
-
+func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON '}'
+ {
+	 if( strcmp(retType, gType) != 0){
+		 yyerror_semantic("return value type does not match the function type");
+		 printf("return value %s type does not match the function type %s ",retType,gType);
+	 }
+	 try("RET","",""); 
+	 printf("function\n");
+	 gType=" ";
+	 nops=0;}; 
 
 many_identifiers:
 				identifier {
 					if(check_func(get_symbol($1))==0) {
-						return;
+						//return;
 					}
 					else {
 						try("params",$1,"");
@@ -280,27 +292,28 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {
 variable : type identifier ASSIGN expression SEMICOLON 
 		  	{	
 				declare_symbol($2, $1, 1, gType, 0);
-				printf("declaration and assignment\n");
 			  	if(nops == 1)
 				{
 					try("Single" , $4, "");
-					printf("YES \n");
 				}	
 				try("POP", $2, ""); 
 				gType = " ";
 				nops = 0;
 			}
-declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
+declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
+
+typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
+	try("type_conv",$3,"");
+	type_conversion($3, $1);
+	
+}
 
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
 					int r = assign_symbol($1, gType); 
-					printf("definition\n");
 					if(nops == 1)
 					{
-						
 						try("Single" , $3, "");
-						printf("YES \n");
 					}		
 					try("POP", $2, ""); 
 					gType = " ";
@@ -345,17 +358,18 @@ dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhil
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); printf($$);}
-			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); printf($$);}
-			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); printf($$);}
-			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); printf($$);}
-			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, "");}
+expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); }
+			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); }
+			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); }
+			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); }
+			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, ""); }
 			| expression SHL expression	    {  try("SHL", $1, $3); try("", $$, "");	}												
 			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, "");	}
 			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
-			| expression IfFiller expression
+			| expression AndAnd expression  {try("And", $1, $3);}
+			| expression OrOr expression    {try("Or", $1, $3);}
 			| expression comparison_OP expression
     ;
 
@@ -368,9 +382,8 @@ expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$,
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
-			| integer_value   { 
+			| integer_value   { //printf("\ integer value %i \n", $1);
 								$$ = toArray($1);
-								printf("\ integer \n");
 								if(gType == " ")
 									gType = "int";
 								else if( strcmp("int", gType) != 0){
@@ -384,7 +397,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								str[0] = $1; 
 								str[1] = '\0'; 
 								$$ = str; 
-								printf("\ char value %s \n", $$);
+								// printf("\ char value %s \n", $$);
 								if(gType == " ")
 									gType = "char";
 								else if( strcmp("char", gType) != 0){
@@ -396,10 +409,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 			| Float_value     { //printf("floaaaat %f", $1); 
 								char buf[1000];
 								gcvt($1, 6, buf);
-								printf(buf);
 								$$ = buf;
-								// printf("$$ %f", $$);
-								printf("\ float value \n");
 								if(gType == " ")
 									gType = "float";
 								else if( strcmp("float", gType) != 0){
@@ -408,7 +418,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
-			| String_value  {	printf("\ string value %s \n", $$);
+			| String_value  {	//printf("\ string value %s \n", $$);
 								if(gType == " ")
 									gType = "string";
 								else if( strcmp("string", gType) != 0){
@@ -417,8 +427,31 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
-			| identifier	  {$$ = $1; printf("\ identifier name is %s \n",  $1);
-							    printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+			| FALSE         { 	$$ = "false";
+								//printf("\ bool value %s \n", $$);
+								if(gType == " ")
+									gType = "bool";
+								else if( strcmp("bool", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+								nops += 1;
+							}
+			| TRUE         { 	$$ = "true";
+								//printf("\ bool value %s \n", $$);
+								if(gType == " ")
+									gType = "bool";
+								else if( strcmp("bool", gType) != 0){
+									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
+									return;
+								}
+								nops += 1;
+							}
+						
+			| identifier	  {$$ = $1; 
+								// printf("\ identifier name is %s \n",  $1);
+							    // printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+								
 								if(gType == " ")
 									gType = get_symbol($1);
 								else if( strcmp(get_symbol($1), gType) != 0){
@@ -444,7 +477,7 @@ for_initi_stat :  type identifier ASSIGN term
 
 %%                     /* C code */
 
-int main (void) {
+int main (int argc, char **argv) {
 	fp = fopen ("quad.txt","w");
 	/* init symbol table */
 	root = malloc(sizeof (node));
@@ -453,7 +486,9 @@ int main (void) {
 	root-> num_children = 0;
 	root-> num_symbols = 0;
 	current = root;
-	yyparse ( );
+	//char* str = read_input_file(argv[1]);
+	//yy_scan_string(str);
+	yyparse ();
 	unused_symbols();
 	print_symbol_table();
 
@@ -588,6 +623,13 @@ void printQuad(){
 			printQuadExpress(arr[i], arr[i+1], NULL, i);
 			i += 1;
 		}
+		else if(arr[i] == "And" || arr[i] == "Or")
+		{
+			fprintf (fp, "push %s\n", arr[i+1]);
+			fprintf (fp, "push %s\n", arr[i+2]);
+			fprintf (fp,  arr[i]); fprintf (fp, "\n");
+			i +=2;
+		}
 		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
 			if(arr[i]=="while" && notCond==0){
 				notCond=1;
@@ -599,7 +641,8 @@ void printQuad(){
 			andLabel=-1;
 		}
 		else if(arr[i]=="startWhile") whileCond=1;
-		else if(arr[i]=="AndAnd"){
+		else if(arr[i]=="AndAnd")
+		{
 			if(andLabel==-1)andLabel=label++;
 			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",andLabel);
 			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",andLabel+1);
@@ -644,6 +687,11 @@ void printQuad(){
 		else if(arr[i]=="endWhile"){
 			fprintf (fp, "jmp l%d\n",label);
 			label+=1;
+		}
+		
+		else if(arr[i]=="type_conv"){
+			fprintf (fp, "CONV %s\n",arr[i+1]);
+			i+=1;
 		}
 	
 	}
