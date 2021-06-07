@@ -3,6 +3,7 @@
 void yyerror (char *s);
 int yylex();
 %}
+%option yylineno
 %%
 "int"               {yylval.string = strdup(yytext); return INT;}
 "float"             {yylval.string = strdup(yytext); return FLOAT;}
