@@ -1,3 +1,4 @@
+###################### if example ###############################
 if(a>b){
     if(c<=2){
         
@@ -13,7 +14,7 @@ else{
 
 }
 
-// not working
+// not working with num
 if(a>b){
     if(c<=2){
         int v = 5;
@@ -29,7 +30,7 @@ else{
     int o = 5;
 }
 
-
+###################### switch case ###############################
 switch (a){
     case 1:
         break;
@@ -39,7 +40,7 @@ switch (a){
         break;
 }
 
-// not working
+// not working with num
 switch (a){
     case 1:
         int l=1;
@@ -52,4 +53,18 @@ switch (a){
         break;
 }
 
-jbgjff;
+###################### while ###############################
+
+while(!(a==b) || (c==d)){
+
+}
+
+while(!(a==b) && (c==d)){
+
+}
+
+###################### do while ###############################
+do {
+
+}
+while(c>d);

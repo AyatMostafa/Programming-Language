@@ -138,8 +138,6 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
-		| end_block		    {;}
-		| line end_block	{;}
 		
 		|if {;}
 		|else {;}
@@ -321,11 +319,11 @@ definition 	: identifier ASSIGN expression SEMICOLON
 logical_exp : identifier comparison_OP term {try("",$1,"");printf("logical expression \n");}
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  {printf("if condition\n");} stmtlist end_block
+if : IF {printf("if condition ");} OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  stmtlist end_block {printf("if condition\n");}
 ifExpr : cond | cond IfFiller ifExpr {printf("expression\n");}
-cond :  identifier comparison_OP identifier {try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
-bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
-notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
+cond :  identifier comparison_OP identifier {if(get_symbol($1) != get_symbol($3)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try("",$1,$3);}} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore {printf("condition\n");}
+bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(get_symbol($2) != get_symbol($4)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try("",$2,$4);}}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
+notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(get_symbol($3) != get_symbol($5)){yyerror("Different types of operands \n");printf("Different types of operands \n");}else{try($3,$5,"not");}}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
 elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} start_block stmtlist end_block
 else : ELSE start_block stmtlist end_block{printf("else\n");}
 
@@ -336,9 +334,10 @@ cases : DEFAULT {printf("HI2");} COLON stmtlist BREAK SEMICOLON {printf("HI4");}
 case : CASE {try("case","","");} term COLON stmtlist BREAK SEMICOLON {printf("HI1");}
 	;
 
-while	: While OPENBRACKET ifExpr CLOSEBRACKET start_block line end_block {printf("whileLoop \n");} 
+while	: While {try("startWhile","","");} OPENBRACKET ifExpr {try("while","","");} CLOSEBRACKET whileCont1 
+whileCont1: '{'stmtlist'}' {try("endWhile","","");printf("whileLoop \n");}  
 	;
-dowhile	: Do_While start_block line end_block While OPENBRACKET ifExpr CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
+dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhile","");} CLOSEBRACKET SEMICOLON {printf("dowhile \n");}
 	;
 
 //----------------- mathematical and logical expression -----------
@@ -445,7 +444,7 @@ int main (void) {
 	print_symbol_table();
 	for(int i=0; i<idx;++i){
 		printf(arr[i]); 
-		//printf("  ");
+		printf("  ");
 	}
 	printQuad();
 	fclose (fp);
@@ -548,11 +547,11 @@ void printQuadArgs(char*c, int iter){
 }
 
 
-
 void printQuad(){
 	int notCond=0;
 	int endSwitchCond=0;
 	int andLabel=-1;
+	int whileCond=0;
 	for (int i=0;i<idx;++i){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
@@ -566,17 +565,29 @@ void printQuad(){
 			printQuadExpress(arr[i], arr[i+1], NULL, i);
 			i += 2;
 		}
-		else if(arr[i]=="if" || arr[i]=="elseif"){
+		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
+			if(arr[i]=="while" && notCond==0){
+				notCond=1;
+				whileCond=0;
+			}
+			else if(arr[i]=="while" && notCond) {notCond=0;whileCond=0;}
 			jmpNewLabel(notCond);
 			notCond=0;
 			andLabel=-1;
 		}
+		else if(arr[i]=="startWhile") whileCond=1;
 		else if(arr[i]=="AndAnd"){
 			if(andLabel==-1)andLabel=label++;
-			fprintf (fp, "jnz l%d \n",andLabel);
+			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",andLabel);
+			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",andLabel+1);
+			else fprintf (fp, "jnz l%d \n",andLabel);
+			notCond=0;
 		}
 		else if (arr[i]=="OrOr"){
-			fprintf (fp, "jz l%d \n",label);
+			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",label);
+			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",label+1);
+			else fprintf (fp, "jz l%d \n",label);
+			notCond=0;
 		}
 		else if(arr[i]=="not"){
 			notCond=1;
@@ -606,6 +617,10 @@ void printQuad(){
 		else if(arr[i]=="params"){
 			fprintf (fp, "push %s\n",arr[i+1]);
 			i+=1; 
+		}
+		else if(arr[i]=="endWhile"){
+			fprintf (fp, "jmp l%d\n",label);
+			label+=1;
 		}
 	
 	}
