@@ -358,9 +358,9 @@ expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, "
     ;
 
 expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
-			|  expression3 INC %prec SUF_INC   { try("INC", $1, ""); try("", $$, "");   
-			|  DEC expression3 %prec PRE_DEC   {try("DEC", $2, ""); try("", $$, "");}
-			|  expression3 DEC %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, "");}  
+			|  expression3 INC %prec SUF_INC   { try("INC", $1, ""); try("", $$, "");} 
+			|  DEC expression3 %prec PRE_DEC   { try("DEC", $2, ""); try("", $$, "");}
+			|  expression3 DEC %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, "");}   
 			|  '!' expression	               {try("NOT", $2, ""); try("", $$, "");}
 			|  '-' expression %prec U_MINUM	   {try("NEG", $2, ""); try("", $$, "");}
 	;
