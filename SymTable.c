@@ -121,8 +121,10 @@ int assign_symbol(char* id, char* data_type){
 		return 0;
 	}
 	else if(strcmp(symbol_node->symbols[*index].type, data_type)!= 0){
+		if(strcmp(data_type, "None") == 0)
+			return 0;
 		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%S", "Type mismatch while assigning ", id, "!\n");
+		sprintf(Output, "%s%s%s", "Type mismatch while assigning ", id, "!\n");
 		yyerror_semantic(Output);
 		return 0;
 	}
@@ -158,8 +160,11 @@ char* get_symbol(char* id){
 }
 void unused_symbols(){
 	for (int i=0; i<current->num_symbols; i++){
-		if (current->symbols[i].initialized != 1)
-			printf("Warning: Variable %s is declared but never used!\n", current->symbols[i].symbol_id);
+		if (current->symbols[i].initialized != 1){
+			char Output[MAX_STR_LEN];
+			sprintf(Output, "%s%s%s", "Warning: Variable ", current->symbols[i].symbol_id, " is declared but never used!\n ");
+			yyerror_semantic(Output);
+		}
 	}
 }
 int type_conversion(char* id, char* new_type){
@@ -190,7 +195,7 @@ void traverse_node(node* Node, FILE* fp, char* seq){
 }
 void print_symbol_table(){
 	FILE * fp;
-   	fp = fopen ("symbol_table.txt","w");
+   	fp = fopen ("Test_Cases/symbol_table.txt","w");
 	traverse_node(root, fp, "0");	
    	fclose (fp);
 }

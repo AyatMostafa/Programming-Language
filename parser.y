@@ -12,7 +12,7 @@ int yylex();
 #include "SymTable.c"  
 extern int yylineno;   
 #define LN10 2.3025850929940456840179914546844
-
+FILE* errorFile;
 FILE * fp;
 int label=0;
 char*arr[100000];
@@ -156,7 +156,7 @@ line	:
 start_block: '{'{
 					level += 1;
 					new_block();
-				 	printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, current->parent->id);
+				 	//printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, current->parent->id);
 				}
 	;
 end_block:	 '}'{
@@ -167,7 +167,8 @@ end_block:	 '}'{
 					int parID;
 					if(current->id == 1)  parID = -1; else parID = current->parent->id;
 				 	level -= 1; unused_symbols(); 
-					current = current -> parent; printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, parID);
+					current = current -> parent; 
+					//printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, parID);
 					}
 				}
 	;
@@ -312,9 +313,9 @@ typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
 					int r = assign_symbol($1, gType); 
+					printf("tmam");
 					if(nops == 1)
 					{
-						
 						try("Single" , $3, "");
 					}		
 					try("POP", $2, ""); 
@@ -419,7 +420,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
-			| String_value  {	printf("\ string value %s \n", $$);
+			| String_value  {
 								if(gType == " ")
 									gType = "string";
 								else if( strcmp("string", gType) != 0){
@@ -428,9 +429,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
-			| identifier	  {$$ = $1; printf("\ identifier name is %s \n",  $1);
-							    printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
-								
+			| identifier	  {$$ = $1;
 								if(gType == " ")
 									gType = get_symbol($1);
 								else if( strcmp(get_symbol($1), gType) != 0){
@@ -457,7 +456,8 @@ for_initi_stat :  type identifier ASSIGN term
 %%                     /* C code */
 
 int main (int argc, char **argv) {
-	fp = fopen ("quad.txt","w");
+	fp = fopen ("Test_Cases/quad.txt","w");
+	errorFile = fopen ("Test_Cases/Errors!!.txt","w");
 	/* init symbol table */
 	root = malloc(sizeof (node));
 	node_counter = 0;
@@ -468,6 +468,7 @@ int main (int argc, char **argv) {
 	//char* str = read_input_file(argv[1]);
 	//yy_scan_string(str);
 	yyparse ();
+	fclose (errorFile);
 	unused_symbols();
 	print_symbol_table();
 
@@ -682,9 +683,11 @@ try(char*operation,char* arg1, char*arg2){
 
 void yyerror (char *s) {
 	fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
 }
 void yyerror_semantic(char *s) {
 	fprintf(stderr, s);
+	fprintf(errorFile, s);
 }
 
 char * toArray(int number)

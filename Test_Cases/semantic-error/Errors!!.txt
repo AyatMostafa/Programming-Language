@@ -1,0 +1,3 @@
+Type mismatch while assigning x!
+Warning: Variable x is declared but never used!
+ 

@@ -28,7 +28,6 @@ def select_file():
     os.system('yacc -d parser.y')
     os.system('gcc -w y.tab.c lex.yy.c -o project')
     os.system('./project ' + filename)
-    os.system('exec <&-')
 
 # open button
 open_button = ttk.Button(
