@@ -359,11 +359,11 @@ dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhil
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); printf($$);}
-			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); printf($$);}
-			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); printf($$);}
-			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); printf($$);}
-			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, "");}
+expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); }
+			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); }
+			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); }
+			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); }
+			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, ""); }
 			| expression SHL expression	    {  try("SHL", $1, $3); try("", $$, "");	}												
 			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, "");	}
 			| expression '&' expression	   
@@ -451,7 +451,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 						
 			| identifier	  {$$ = $1; 
 								// printf("\ identifier name is %s \n",  $1);
-							    printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+							    // printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
 								
 								if(gType == " ")
 									gType = get_symbol($1);
