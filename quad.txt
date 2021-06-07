@@ -1,11 +1,16 @@
-push 5
-Pop a
-push 4
+push 10
+Pop x
+push 10
+push x
+compEQ 
+jz l0 
+push 10
 Pop b
-push "hi"
-Pop f
-push c
-push d
-compG 
-jnz l0 
-jmp l1
+push 5
+push x
+compEQ 
+jz l1 
+push 5
+Pop b
+push x
+Pop b

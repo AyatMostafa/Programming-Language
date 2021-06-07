@@ -11,7 +11,6 @@ int yylex();
 #include <stdbool.h>
 #include "SymTable.c"  
 extern int yylineno;   
-#define LN10 2.3025850929940456840179914546844
 
 FILE * fp;
 int label=0;
@@ -166,7 +165,7 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;try("",toArray($1),"");termType="int";}
+term	: integer_value {;printf(toArray($1));try("",toArray($1),"");termType="int";}
 		  | Float_value {; char buf[1000];gcvt($1, 6, buf);try("",buf,"");termType="float";}
 		  | Char_value{;printf('%c',$1);/*try("",ptr,""); termType="char";*/}
 		  | String_value{;try("",$1,""); termType="string";}
@@ -669,41 +668,14 @@ void yyerror_semantic(char *s) {
 	fprintf(stderr, s);
 }
 
-char * toArray(int number)
-{
-    int n = log10(number) + 1;
-    int i;
-    char *numberArray = calloc(n, sizeof(char));
-    for (i = n-1; i >= 0; --i, number /= 10)
-    {
-        numberArray[i] = (number % 10) + '0';
-    }
-    return numberArray;
+
+char* toArray(int number){
+	char text[20]; 
+	sprintf(text, "%d", number);   
+	return strdup(text);
 }
 
-double ln(double x)
-{
-    double old_sum = 0.0;
-    double xmlxpl = (x - 1) / (x + 1);
-    double xmlxpl_2 = xmlxpl * xmlxpl;
-    double denom = 1.0;
-    double frac = xmlxpl;
-    double term = frac;                 // denom start from 1.0
-    double sum = term;
 
-    while ( sum != old_sum )
-    {
-        old_sum = sum;
-        denom += 2.0;
-        frac *= xmlxpl_2;
-        sum += frac / denom;
-    }
-    return 2.0 * sum;
-}
-
-double log10( double x ) {
-    return ln(x) / LN10;    
-}
 
 char* syntax_error_handler(int err){
 	printf("yycahr value is %d %s", err, " ");
