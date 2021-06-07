@@ -31,16 +31,7 @@ int declare_symbol(char*, char*, int, char*, int);
 char* get_symbol(char* id);
 void unused_symbols();
 char* gType = " ";
-// typedef enum nodeEnumType{ CHAR, INT, FLOAT, STRING } nodeEnumType;
-// typedef struct exprtype {
-// 	nodeEnumType type;
-//     union value{
-// 		char charVal;
-// 		int intVal;
-// 		float floatval;
-// 		char * stringval;
-// 	} value;
-// } exprtype;
+int  nops =0;
 char* syntax_error_handler(int);
 %}
 
@@ -95,7 +86,7 @@ char* syntax_error_handler(int);
 %token SHR
 
 %type <string>  expression expression1 expression2 expression3 
-%type<string> '-' '+' '*' '/' '%' '&' '|' '^' '~' 
+%type<string> '-' '+' '*' '/' '%' '&' '|' '^' 
 %type <string> type
 
 // Precedence
@@ -273,37 +264,57 @@ func_call_p2: func_call_p1 many_identifiers CLOSEBRACKET SEMICOLON {func_call_ha
 			| func_call_p1 CLOSEBRACKET SEMICOLON {func_call_handler();}
 			;
 			
-constant : CONST type identifier ASSIGN expression SEMICOLON {declare_symbol($3, $2, 1, "int", 1); printf("constant and assignment\n"); {try("POP", $3, "");}}
+constant : CONST type identifier ASSIGN expression SEMICOLON {
+				declare_symbol($3, $2, 1, gType, 1); 
+				printf("constant and assignment\n");
+				if(nops == 1)
+				{
+					try("Single" , $5, "");
+				}	
+				try("POP", $3, ""); 
+				gType = " ";
+				nops = 0;
+			}
 variable : type identifier ASSIGN expression SEMICOLON 
 		  	{	
-				assign_symbol($2, gType);  
+				declare_symbol($2, $1, 1, gType, 0);
 				printf("declaration and assignment\n");
-			  	if( $4 == $5)
-				  {
+			  	if(nops == 1)
+				{
 					try("Single" , $4, "");
-					// printf("YES \n");
-				  }	
+					printf("YES \n");
+				}	
 				try("POP", $2, ""); 
 				gType = " ";
+				nops = 0;
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
 
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
-					assign_symbol($1, gType); 
+					int r = assign_symbol($1, gType); 
+					printf(r);
 					printf("definition\n");
+					if(nops == 1)
+					{
+						
+						try("Single" , $3, "");
+						printf("YES \n");
+					}		
+					try("POP", $2, ""); 
 					gType = " ";
+					nops = 0;
 				} 
-			| identifier ASSIGN identifier SEMICOLON 
-				{
-					char* t = get_symbol($3);
-					printf("\ type of variable %s is %s \n", $3 , get_symbol($3));
-					if(strcmp(t, "None") == 0) 
-						return;
-					else 
-						assign_symbol($1, t);
-					gType = " ";	
-				}
+			// | identifier ASSIGN identifier SEMICOLON 
+			// 	{
+			// 		char* t = get_symbol($3);
+			// 		if(strcmp(t, "None") == 0) 
+			// 			return;
+			// 		else 
+			// 			assign_symbol($1, t);
+			// 		gType = " ";
+			// 		nops = 0;	
+			// 	}
 logical_exp : identifier comparison_OP term {try("",$1,"");};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
@@ -332,20 +343,12 @@ dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhil
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     { 	try("Add", $1, $3); try("", $$, ""); printf($$); }
-
+expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); printf($$);}
 			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); printf($$);}
-
 			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); printf($$);}
-												
 			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); printf($$);}
-												
-			
 			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, "");}
-												
-
-			| expression SHL expression	    {   try("SHL", $1, $3); try("", $$, "");	}											
-																						
+			| expression SHL expression	    {  try("SHL", $1, $3); try("", $$, "");	}												
 			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, "");	}
 			| expression '&' expression	   
 			| expression '|' expression
@@ -355,17 +358,16 @@ expression1:  expression '+' expression     { 	try("Add", $1, $3); try("", $$, "
     ;
 
 expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
-			|  expression3 INC %prec SUF_INC 	   
+			|  expression3 INC %prec SUF_INC   { try("INC", $1, ""); try("", $$, "");   
 			|  DEC expression3 %prec PRE_DEC   {try("DEC", $2, ""); try("", $$, "");}
-			|  expression3 DEC %prec SUF_DEC	  
-			|  '~' expression
+			|  expression3 DEC %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, "");}  
 			|  '!' expression	               {try("NOT", $2, ""); try("", $$, "");}
 			|  '-' expression %prec U_MINUM	   {try("NEG", $2, ""); try("", $$, "");}
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
-			| integer_value   { //printf($1);
-								//itoa($1,$$,10);
+			| integer_value   { 
+								$$ = toArray($1);
 								printf("\ integer \n");
 								if(gType == " ")
 									gType = "int";
@@ -373,21 +375,36 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
 									return;
 								}
+								nops += 1;
 							}	
-			| Char_value      {$$ = $1; printf("\ char value \n");
+			| Char_value      { 
+								char str[2]; 
+								str[0] = $1; 
+								str[1] = '\0'; 
+								$$ = str; 
+								printf("\ char value %s \n", $$);
 								if(gType == " ")
 									gType = "char";
 								else if( strcmp("char", gType) != 0){
 									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
 									return;
-								}}
-			| Float_value     {  printf("\ float value \n");
-									if(gType == " ")
+								}
+								nops += 1;
+								}
+			| Float_value     { //printf("floaaaat %f", $1); 
+								char buf[1000];
+								gcvt($1, 6, buf);
+								printf(buf);
+								$$ = buf;
+								// printf("$$ %f", $$);
+								printf("\ float value \n");
+								if(gType == " ")
 									gType = "float";
 								else if( strcmp("float", gType) != 0){
 									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
 									return;
 								}
+								nops += 1;
 							}
 			| String_value  {	printf("\ string value %s \n", $$);
 								if(gType == " ")
@@ -396,15 +413,17 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
 									return;
 								}
+								nops += 1;
 							}
 			| identifier	  {$$ = $1; printf("\ identifier name is %s \n",  $1);
+							    printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
 								if(gType == " ")
 									gType = get_symbol($1);
 								else if( strcmp(get_symbol($1), gType) != 0){
 									yyerror("Different types of operands \n");	printf("Different types of operands  \n");
 									return;
 								}
-								//printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+								nops += 1;
 							}	
 	;
 
@@ -439,6 +458,8 @@ int main (void) {
 		printf(arr[i]); 
 		printf("  ");
 	}
+	int x;
+	scanf("%d",  &x);
 	printQuad();
 	fclose (fp);
 	return 0;
@@ -554,9 +575,13 @@ void printQuad(){
 			printQuadExpress(arr[i],arr[i+1],arr[i+2], i);
 			i += 3;
 		}
-		else if(arr[i] == "INC" || arr[i] == "DEC" || arr[i] == "NOT" || arr[i] == "NEG" || arr[i] == "POP" || arr[i] == "Single"){
+		else if(arr[i] == "INC" || arr[i] == "DEC" || arr[i] == "NOT" || arr[i] == "NEG"){
 			printQuadExpress(arr[i], arr[i+1], NULL, i);
 			i += 2;
+		}
+		else if(arr[i] == "POP" || arr[i] == "Single"){
+			printQuadExpress(arr[i], arr[i+1], NULL, i);
+			i += 1;
 		}
 		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
 			if(arr[i]=="while" && notCond==0){

@@ -52,7 +52,7 @@ int yylex();
 "<<"                         {return SHL;}
 ">>"                         {return SHR;}
 !	                         {return NOT;}
-[-+*/{}~^&|]           	     {return yytext[0];}
+[-+*/{}^&|]           	     {return yytext[0];}
 
 [ \t\n]              ;
 .                            {ECHO; yyerror ("unexpected character");}
