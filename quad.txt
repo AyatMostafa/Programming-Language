@@ -1,4 +1,0 @@
-push 5
-Pop x
-push 6
-Pop y

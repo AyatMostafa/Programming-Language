@@ -215,7 +215,6 @@ void func_call_handler(){
 	func_call_node = 0;
 	printf("Function Call\n");
 }
-
 char* read_input_file(char* filename){
 	FILE *fp;
 	long lSize;

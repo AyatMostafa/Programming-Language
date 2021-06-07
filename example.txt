@@ -1,70 +1,100 @@
 ###################### if example ###############################
+
+int a; a=5;
+int b; b=4;
+int c; c=3;
+string f; f="hi";
+string g; g="bye";
+float v; v=1.5;
 if(a>b){
     if(c<=2){
-        
+        int x;x=1;
     }
 }
 if (a==2 && b<c){
-
+    string z;z="ahmed";
 }
-else if(v>=5 || f==g){
-
+else if(v>=5.3 || f==g){
+    float a;a=1.5;
 }
 else{
-
+    v=10.1;
 }
 
-// not working with num
-if(a>b){
+ ##################### if example with type mismatch #############
+
+int a; a=5;
+int b; b=4;
+string f; f="hi";
+string g; g="bye";
+float v; v=1.5;
+if(a>f){
     if(c<=2){
-        int v = 5;
+        int x;x=1;
     }
 }
-if (a==2 && b<c){
-    int l = 5;
+if (a==2.5 && b<g){
+    string z;z="ahmed";
 }
-else if(v>=5 || f==g){
-    int z = 5;
+else if(v>=5.3 || f==g){
+    float a;a=1.5;
 }
 else{
-    int o = 5;
+    v=10.1;
 }
 
 ###################### switch case ###############################
+int a;a=2;
 switch (a){
     case 1:
+        int x;
+        x=1;
         break;
     case 2:
+        string z;
+        z="ahmed";
         break;
     default:
+        float a;
+        a=1.5;
         break;
 }
 
-// not working with num
+###################### switch case with type mismatch ###############################
+int a=2;
 switch (a){
-    case 1:
-        int l=1;
+    case "ahmed":
+        int x;
+        x=1;
         break;
-    case 2:
-        int l=2;
+    case 1.6:
+        string z;
+        z="ahmed";
         break;
     default:
-        int l = 0;
+        float a;
+        a=1.5;
         break;
 }
 
 ###################### while ###############################
 
 while(!(a==b) || (c==d)){
-
+    int a; a=5;
+    int b; b=4;
+    string f; f="hi";
 }
 
 while(!(a==b) && (c==d)){
-
+    int a; a=5;
+    int b; b=4;
+    string f; f="hi";
 }
 
 ###################### do while ###############################
 do {
-
+    int a; a=5;
+    int b; b=4;
+    string f; f="hi";
 }
 while(c>d);
