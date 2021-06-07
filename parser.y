@@ -112,6 +112,8 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
+		| end_block		{;}
+		| line end_block	{;}
 		
 		|if {;}
 		|else {;}
@@ -163,7 +165,7 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;}//try("",toArray($1),"");}
+term	: integer_value {printf("maatch %d", $1);try("",toArray($1),"");}
 		  | Float_value {; char buf[1000];gcvt($1, 6, buf);printf(buf);try("",buf,"");}
 		  | Char_value{;printf('%c',$1);/*try("",ptr,""); */}
 		  | String_value{;try("",$1,""); }
@@ -201,27 +203,27 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 			
 			if (current->id != 0){
 				yyerror_semantic("Function can only be declared globally!");
-				return;
+				//return;
 			}
 			for(int i=0; i<BRANCHFACTOR; i++)
 				if(function_table[i] && strcmp(function_table[i], $2)==0){
 					char Output[MAX_STR_LEN];
 					sprintf(Output, "%s%s%s", "A function with name ", $2, " is already defined!\n");
 					yyerror_semantic(Output);
-					return 0;
+					//return 0;
 				}
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
-func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
- {try("RET","",""); printf("function\n");}; 
+func_p2: func_p1 start_block stmtlist RET expression SEMICOLON end_block
+ {try("RET","",""); }//if(strcmp(get_symbol($5), "None") != 0) printf("function\n");}; 
 
 
 
 many_identifiers:
 				identifier {
 					if(check_func(get_symbol($1))==0) {
-						return;
+						//return;
 					}
 					else {
 						try("params",$1,"");
@@ -278,28 +280,23 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {
 variable : type identifier ASSIGN expression SEMICOLON 
 		  	{	
 				declare_symbol($2, $1, 1, gType, 0);
-				printf("declaration and assignment\n");
 			  	if(nops == 1)
 				{
 					try("Single" , $4, "");
-					printf("YES \n");
 				}	
 				try("POP", $2, ""); 
 				gType = " ";
 				nops = 0;
 			}
-declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
+declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
 
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
 					int r = assign_symbol($1, gType); 
-					printf(r);
-					printf("definition\n");
 					if(nops == 1)
 					{
 						
 						try("Single" , $3, "");
-						printf("YES \n");
 					}		
 					try("POP", $2, ""); 
 					gType = " ";
@@ -368,7 +365,6 @@ expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$,
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 			| integer_value   { 
 								$$ = toArray($1);
-								printf("\ integer \n");
 								if(gType == " ")
 									gType = "int";
 								else if( strcmp("int", gType) != 0){
@@ -394,10 +390,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 			| Float_value     { //printf("floaaaat %f", $1); 
 								char buf[1000];
 								gcvt($1, 6, buf);
-								printf(buf);
 								$$ = buf;
-								// printf("$$ %f", $$);
-								printf("\ float value \n");
 								if(gType == " ")
 									gType = "float";
 								else if( strcmp("float", gType) != 0){
@@ -442,7 +435,7 @@ for_initi_stat :  type identifier ASSIGN term
 
 %%                     /* C code */
 
-int main (void) {
+int main (int argc, char **argv) {
 	fp = fopen ("quad.txt","w");
 	/* init symbol table */
 	root = malloc(sizeof (node));
@@ -451,7 +444,9 @@ int main (void) {
 	root-> num_children = 0;
 	root-> num_symbols = 0;
 	current = root;
-	yyparse ( );
+	//char* str = read_input_file(argv[1]);
+	//yy_scan_string(str);
+	yyparse ();
 	unused_symbols();
 	print_symbol_table();
 	for(int i=0; i<idx;++i){
