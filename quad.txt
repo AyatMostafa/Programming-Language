@@ -1,11 +1,16 @@
-push 5
+push 3
+Pop s
+PROC fun
+Pop x
+Pop y
+push 3
+Pop z
+RET 
+push 3
 Pop a
-push 4
-Pop b
-push "hi"
-Pop f
-push c
-push d
-compG 
-jnz l0 
-jmp l1
+push 3
+Pop t
+CALL fun
+push t
+push a
+CONV t

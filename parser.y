@@ -32,12 +32,13 @@ void new_block();
 int declare_symbol(char*, char*, int, char*, int);
 char* get_symbol(char* id);
 void unused_symbols();
+char* retType = " ";
 char* gType = " ";
 int  nops =0;
 char* syntax_error_handler(int);
 %}
 
-%define parse.error verbose
+//%define parse.error verbose
 %locations
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
@@ -146,6 +147,8 @@ line	:
 		| line func_call_p1{;}
 		| func_call_p2{;}
 		| line func_call_p2{;}
+		|typeConversion{;}
+		|line typeConversion{;}
 	;
 
 start_block: '{'{
@@ -201,7 +204,7 @@ stmtlist:  line
 
 func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 		{
-			
+			retType=$1;
 			if (current->id != 0){
 				yyerror_semantic("Function can only be declared globally!");
 				return;
@@ -216,8 +219,16 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 			function_table[node_counter+1] = $2;
 			in_function = 1;
 		};
-func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON
- {try("RET","",""); printf("function\n");}; 
+func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON '}'
+ {
+	 if( strcmp(retType, gType) != 0){
+		 yyerror_semantic("return value type does not match the function type");
+		 printf("return value %s type does not match the function type %s ",retType,gType);
+	 }
+	 try("RET","",""); 
+	 printf("function\n");
+	 gType=" ";
+	 nops=0;}; 
 
 
 
@@ -292,6 +303,12 @@ variable : type identifier ASSIGN expression SEMICOLON
 				nops = 0;
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);printf("declaration\n");}
+
+typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
+	try("type_conv",$3,"");
+	type_conversion($3, $1);
+	
+}
 
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
@@ -420,6 +437,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 							}
 			| identifier	  {$$ = $1; printf("\ identifier name is %s \n",  $1);
 							    printf("\ type of variable %s is %s \n", $1 , get_symbol($1));
+								
 								if(gType == " ")
 									gType = get_symbol($1);
 								else if( strcmp(get_symbol($1), gType) != 0){
@@ -645,6 +663,11 @@ void printQuad(){
 		else if(arr[i]=="endWhile"){
 			fprintf (fp, "jmp l%d\n",label);
 			label+=1;
+		}
+		
+		else if(arr[i]=="type_conv"){
+			fprintf (fp, "CONV %s\n",arr[i+1]);
+			i+=1;
 		}
 	
 	}

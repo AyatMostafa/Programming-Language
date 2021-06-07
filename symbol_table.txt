@@ -1,6 +1,10 @@
 {
  0 
+	 s int 1
+}
+{
+ 0.0 
+	 z int 1
 	 a int 1
-	 b int 1
-	 f string 1
+	 t string 1
 }
