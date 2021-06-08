@@ -35,11 +35,12 @@ char* get_symbol(char* id);
 void unused_symbols();
 char* retType = " ";
 char* gType = " ";
+char* func_id=" ";
 int  nops =0;
 char* syntax_error_handler(int);
 %}
 
-%define parse.error verbose
+//%define parse.error verbose
 %locations
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
@@ -234,7 +235,8 @@ func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON end_block
 	 try("RET","",""); 
 	 printf("function\n");
 	 gType=" ";
-	 nops=0;}; 
+	 nops=0;}
+	|func_p1 start_block stmtlist end_block; 
 
 many_identifiers:
 				identifier {
@@ -254,10 +256,12 @@ many_identifiers:
 						try("params",$1,"");
 					} 
 				}
-				|;
+				|
+				;
 
 func_call_p1: identifier OPENBRACKET 
 			{	try("CALL",$1,"");
+				func_id=$1;
 				int found = 0;
 				for(int i=0; i<BRANCHFACTOR; i++)
 					if(function_table[i] && strcmp(function_table[i], $1)==0)
@@ -305,6 +309,9 @@ variable : type identifier ASSIGN expression SEMICOLON
 				gType = " ";
 				nops = 0;
 			}
+			|type identifier ASSIGN func_call_p2 SEMICOLON {
+				assign_to_func(func_id, $2);
+			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
 
 typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
@@ -326,6 +333,10 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						nops = 0;
 					}
 				} 
+				| identifier ASSIGN func_call_p2 SEMICOLON  {
+				  assign_to_func(func_id, $1);
+			}
+				
 			// | identifier ASSIGN identifier SEMICOLON 
 			// 	{
 			// 		char* t = get_symbol($3);
@@ -469,7 +480,9 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 									return;
 								}
 								nops += 1;
-							}	
+							}
+							
+			
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -478,10 +491,12 @@ single_val: term SEMICOLON | '-' term SEMICOLON
 
 //-------------------- FOR Rule ---------------
 
-for :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
+for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","","");} 
+
+ start_block stmtlist end_block {try("endforloop","","");}
 	;
-for_initi_stat :  type identifier ASSIGN term
-			    | identifier ASSIGN term
+for_initi_stat :  variable
+			    | definition
 	;
 
 
@@ -615,10 +630,14 @@ void printQuadArgs(char*c, int iter){
 
 void printQuad(){
 	int notCond=0;
+	int notCond_for=0;
 	int endSwitchCond=0;
 	int andLabel=-1;
 	int orLabel=-1;
+	int andLabel_for=-1;
 	int whileCond=0;
+	int forloopCond=0;
+
 	for (int i=0;i<idx;++i){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
@@ -669,16 +688,33 @@ void printQuad(){
 			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",label+1);
 			else fprintf (fp, "jnz l%d \n",label);
 			notCond=0;
+			//for loop 
+			if(andLabel_for==-1)andLabel_for=label++;
+			if(notCond_for && forloopCond==0) fprintf (fp, "jz l%d \n",andLabel_for);
+			else if(notCond_for && forloopCond) fprintf (fp, "jz l%d \n",andLabel_for+1);
+			else fprintf (fp, "jnz l%d \n",andLabel_for);
+			notCond_for=0;
 		}
 		else if (arr[i]=="OrOr"){
 			if(orLabel==-1)orLabel=label++;
 			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",orLabel);
 			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",orLabel+1);
 			else fprintf (fp, "jz l%d \n",orLabel);
+			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",label);
+			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",label+1);
+			//for loop 
+			else if(notCond_for && forloopCond) fprintf (fp, "jnz l%d \n",label+1);
+			else if(notCond_for && forloopCond==0)  (fp, "jnz l%d \n",label);
+
+			else fprintf (fp, "jz l%d \n",label);
 			notCond=0;
+			//for loop 
+			notCond_for=0;
 		}
 		else if(arr[i]=="not"){
 			notCond=1;
+			//for loop
+			notCond_for=1;
 		}
 		else if(arr[i]=="endIf"){
 			fprintf (fp, "jmp l%d\n",label-1);
@@ -716,13 +752,19 @@ void printQuad(){
 			fprintf (fp, "jmp l%d\n",label);
 			label+=1;
 		}
-		
+		else if(arr[i]=="endforloop"){
+			fprintf (fp, "jmp l%d\n",label);
+			label+=1;
+		}
 		else if(arr[i]=="type_conv"){
 			fprintf (fp, "CONV %s\n",arr[i+1]);
 			i+=1;
 		}
+		
+		
 	}
 }
+
 
 try(char*operation,char* arg1, char*arg2){
 	if (operation != ""){

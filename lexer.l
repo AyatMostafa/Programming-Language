@@ -9,7 +9,7 @@ int yylex();
 "float"             {yylval.string = strdup(yytext); return FLOAT;}
 "char"              {yylval.string = strdup(yytext); return CHAR;}
 "string"            {yylval.string = strdup(yytext); return STRING;}
-"void"              {return VOID;}
+"void"              {yylval.string = strdup(yytext); return VOID;}
 "const"             {yylval.string = strdup(yytext); return CONST;}
 "bool"              {yylval.string = strdup(yytext); return BOOL;}
 "while"				{return While;}
