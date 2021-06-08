@@ -36,6 +36,7 @@ void unused_symbols();
 char* retType = " ";
 char* gType = " ";
 char* func_id=" ";
+int For_loop = 0;
 int  nops =0;
 char* syntax_error_handler(int);
 %}
@@ -309,7 +310,7 @@ variable : type identifier ASSIGN expression SEMICOLON
 				gType = " ";
 				nops = 0;
 			}
-			|type identifier ASSIGN func_call_p2 SEMICOLON {
+			|type identifier ASSIGN func_call_p2  {
 				assign_to_func(func_id, $2);
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
@@ -333,8 +334,8 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						nops = 0;
 					}
 				} 
-				| identifier ASSIGN func_call_p2 SEMICOLON  {
-				  assign_to_func(func_id, $1);
+				| identifier ASSIGN func_call_p2 {
+				  assign_to_func($1, func_id);
 			}
 				
 			// | identifier ASSIGN identifier SEMICOLON 
@@ -491,9 +492,9 @@ single_val: term SEMICOLON | '-' term SEMICOLON
 
 //-------------------- FOR Rule ---------------
 
-for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","","");} 
+for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","",""); For_loop=1;} 
 
- start_block stmtlist end_block {try("endforloop","","");}
+ start_block stmtlist end_block {try("endforloop","","");For_loop=0;}
 	;
 for_initi_stat :  variable
 			    | definition
@@ -637,8 +638,10 @@ void printQuad(){
 	int andLabel_for=-1;
 	int whileCond=0;
 	int forloopCond=0;
-
+	int orLabel_for=-1;
 	for (int i=0;i<idx;++i){
+		if(arr[i]=="forloop")For_loop=1;
+
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
 			i+=2;
@@ -688,12 +691,7 @@ void printQuad(){
 			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",label+1);
 			else fprintf (fp, "jnz l%d \n",label);
 			notCond=0;
-			//for loop 
-			if(andLabel_for==-1)andLabel_for=label++;
-			if(notCond_for && forloopCond==0) fprintf (fp, "jz l%d \n",andLabel_for);
-			else if(notCond_for && forloopCond) fprintf (fp, "jz l%d \n",andLabel_for+1);
-			else fprintf (fp, "jnz l%d \n",andLabel_for);
-			notCond_for=0;
+
 		}
 		else if (arr[i]=="OrOr"){
 			if(orLabel==-1)orLabel=label++;
@@ -702,14 +700,9 @@ void printQuad(){
 			else fprintf (fp, "jz l%d \n",orLabel);
 			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",label);
 			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",label+1);
-			//for loop 
-			else if(notCond_for && forloopCond) fprintf (fp, "jnz l%d \n",label+1);
-			else if(notCond_for && forloopCond==0)  (fp, "jnz l%d \n",label);
-
+		
 			else fprintf (fp, "jz l%d \n",label);
 			notCond=0;
-			//for loop 
-			notCond_for=0;
 		}
 		else if(arr[i]=="not"){
 			notCond=1;
@@ -752,10 +745,46 @@ void printQuad(){
 			fprintf (fp, "jmp l%d\n",label);
 			label+=1;
 		}
+		//for loop
+		else if(arr[i]=="forloop"){
+			if(notCond_for==0){
+					notCond_for=1;
+					forloopCond=0;
+				}
+			else{notCond_for=0;forloopCond=0;}
+			jmpNewLabel(notCond_for);
+			notCond_for=0;
+			andLabel_for=-1;
+			orLabel_for=-1;
+		}
 		else if(arr[i]=="endforloop"){
 			fprintf (fp, "jmp l%d\n",label);
 			label+=1;
 		}
+		//for loop 
+		else if(For_loop&&arr[i]=="AndAnd")
+		{
+			//for loop 
+			if(andLabel_for==-1)andLabel_for=label++;
+			if(notCond_for && forloopCond==0) fprintf (fp, "jz l%d \n",andLabel_for);
+			else if(notCond_for && forloopCond) fprintf (fp, "jz l%d \n",andLabel_for+1);
+			else fprintf (fp, "jnz l%d \n",andLabel_for);
+			notCond_for=0;
+		}
+		// for loop 
+		else if (For_loop&&arr[i]=="OrOr"){
+			//for loop 		
+			if(orLabel_for==-1)orLabel_for=label++;
+			if(notCond_for && forloopCond==0) fprintf (fp, "jnz l%d \n",orLabel_for);
+			else if(notCond_for && forloopCond) fprintf (fp, "jnz l%d \n",orLabel_for+1);
+			else fprintf (fp, "jz l%d \n",orLabel_for);
+			if(notCond_for && forloopCond==0) fprintf (fp, "jnz l%d \n",label);
+			else if(notCond_for && forloopCond) fprintf (fp, "jnz l%d \n",label+1);
+		
+			else fprintf (fp, "jz l%d \n",label);
+			notCond_for=0;
+		
+		}	
 		else if(arr[i]=="type_conv"){
 			fprintf (fp, "CONV %s\n",arr[i+1]);
 			i+=1;
