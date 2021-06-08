@@ -145,3 +145,49 @@ else
     break;
   }
 
+
+
+
+
+
+if(a==b){ 
+	int x;
+	x=1;
+}
+else if(c>d && f<1){
+	int z;
+	z=5;
+}
+if(b>s || c>=5){
+
+}
+if(!(a==b)){
+
+}
+if(!(a>b) && (c==d)){
+
+}
+if(!(a>b) || (c==d)){
+
+}
+while(w>d){
+
+}
+while(!(r<c)){
+
+}
+
+int b=0;
+switch (x)
+  {
+  case 1:
+    b = 10;
+    break;
+  case 2:
+   b = 5;
+   break;
+
+  default:
+    b=4;
+    break;
+  }

@@ -5,24 +5,24 @@
     int b = 10;
   }
 
-  int x = 0;
+  int x; x= 0;
 
   while (x < 20)
   {
-    x++;
+    x=x+1;
   }
 
   x = 0;
 
   do
   {
-    x++
+    x=x+1;
   } while (x < 20);
 
   switch (x)
   {
   case 1:
-    x = 10 break;
+    x = 10; break;
 
   default:
     break;

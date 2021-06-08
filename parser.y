@@ -340,19 +340,19 @@ definition 	: identifier ASSIGN expression SEMICOLON
 logical_exp : identifier comparison_OP term {if(strcmp(get_symbol($1),termType)!=0){yyerror_semantic("Different types of operands \n");}try("",$1,"");};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-if : IF OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} block
+if : IF OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} block {try("endIf","","");}
 ifExpr : cond | cond IfFiller ifExpr
 cond :  identifier comparison_OP identifier {if(strcmp(get_symbol($1),get_symbol($3))!=0){yyerror_semantic("Different types of operands \n");}try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore 
 bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($2),get_symbol($4))!=0){yyerror_semantic("Different types of operands \n");}try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
 notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($3),get_symbol($5))!=0){yyerror_semantic("Different types of operands \n");}try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
-elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} block
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} block {try("endIf","","");}
 else : ELSE block
 
 IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
 switch : SWITCH OPENBRACKET identifier {switchVariableType=get_symbol($3);try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
 cases : DEFAULT COLON stmtlist BREAK SEMICOLON| case cases
-case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON
+case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON {try("endCase","","");}
 	;
 
 while	: While {try("startWhile","","");} OPENBRACKET ifExpr {try("while","","");} CLOSEBRACKET whileCont1 
@@ -497,8 +497,8 @@ int main (int argc, char **argv) {
 	root-> num_children = 0;
 	root-> num_symbols = 0;
 	current = root;
-	char* str = read_input_file(argv[1]);
-	yy_scan_string(str);
+	//char* str = read_input_file(argv[1]);
+	//yy_scan_string(str);
 	yyparse ();
 	fclose (errorFile);
 	unused_symbols();
@@ -617,6 +617,7 @@ void printQuad(){
 	int notCond=0;
 	int endSwitchCond=0;
 	int andLabel=-1;
+	int orLabel=-1;
 	int whileCond=0;
 	for (int i=0;i<idx;++i){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
@@ -642,33 +643,48 @@ void printQuad(){
 			fprintf (fp,  arr[i]); fprintf (fp, "\n");
 			i +=2;
 		}
-		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
-			if(arr[i]=="while" && notCond==0){
-				notCond=1;
-				whileCond=0;
-			}
-			else if(arr[i]=="while" && notCond) {notCond=0;whileCond=0;}
+		else if(arr[i]=="if" || arr[i]=="elseif"){
+			if(notCond)notCond=0;else notCond=1;
 			jmpNewLabel(notCond);
 			notCond=0;
 			andLabel=-1;
+			orLabel=-1;
+		}
+		else if(arr[i]=="while"){
+			if(notCond==0){
+				notCond=1;
+				whileCond=0;
+			}
+			else{notCond=0;whileCond=0;}
+			jmpNewLabel(notCond);
+			notCond=0;
+			andLabel=-1;
+			orLabel=-1;
 		}
 		else if(arr[i]=="startWhile") whileCond=1;
 		else if(arr[i]=="AndAnd")
 		{
 			if(andLabel==-1)andLabel=label++;
-			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",andLabel);
-			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",andLabel+1);
-			else fprintf (fp, "jnz l%d \n",andLabel);
+			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",label);
+			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",label+1);
+			else fprintf (fp, "jnz l%d \n",label);
 			notCond=0;
 		}
 		else if (arr[i]=="OrOr"){
-			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",label);
-			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",label+1);
-			else fprintf (fp, "jz l%d \n",label);
+			if(orLabel==-1)orLabel=label++;
+			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",orLabel);
+			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",orLabel+1);
+			else fprintf (fp, "jz l%d \n",orLabel);
 			notCond=0;
 		}
 		else if(arr[i]=="not"){
 			notCond=1;
+		}
+		else if(arr[i]=="endIf"){
+			fprintf (fp, "jmp l%d\n",label-1);
+		}
+		else if(arr[i]=="endCase"){
+			fprintf (fp, "jmp l%d\n",label-1);
 		}
 		else if(arr[i]=="switch"){
 			fprintf (fp, "push %s\n",arr[i+1]);
@@ -705,7 +721,6 @@ void printQuad(){
 			fprintf (fp, "CONV %s\n",arr[i+1]);
 			i+=1;
 		}
-	
 	}
 }
 
