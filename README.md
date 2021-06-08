@@ -10,6 +10,7 @@ A programming language is designed and implemented using the Lex and Yacc compil
 | Nada Adel | 2 | 27 |
 
 # Notes
+   - We assume that, if the comparison is true, the flag will be zero
    - Any complete statement (line) ends with a semicolon(;)
 
 # If - Else statement
