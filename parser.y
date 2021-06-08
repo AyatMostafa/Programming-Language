@@ -475,7 +475,6 @@ for_initi_stat :  type identifier ASSIGN term
 			    | identifier ASSIGN term
 	;
 
-
 %%                     /* C code */
 
 int main (int argc, char **argv) {
