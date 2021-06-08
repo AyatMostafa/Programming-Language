@@ -3,6 +3,7 @@
 }
 {
  0.0 
+	 Scope of main
 	 x int 1
 	 b int 1
 }

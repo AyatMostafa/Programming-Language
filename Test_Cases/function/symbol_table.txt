@@ -1,0 +1,14 @@
+{
+ 0 
+}
+{
+ 0.0 
+	 Scope of a function with return type: int,  Formal parametres:
+	 y int 
+	 x int 
+}
+{
+ 0.1 
+	 Scope of main
+	 a int 1
+}

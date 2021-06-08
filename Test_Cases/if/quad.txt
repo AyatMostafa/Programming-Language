@@ -1,16 +1,19 @@
+PROC main
 push 10
 Pop x
 push 10
 push x
 compEQ 
-jz l0 
+jnz l0 
 push 10
 Pop b
+jmp l0
 push 5
 push x
 compEQ 
-jz l1 
+jnz l1 
 push 5
 Pop b
+jmp l1
 push x
 Pop b

@@ -1,1 +1,3 @@
-Error: Invalid identifier name! at line 2 
+Type mismatch while assigning x!
+Warning: Variable x is declared but never used!
+ 

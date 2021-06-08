@@ -1,19 +1,14 @@
-PROC main
-push 0
+PROC sum
 Pop x
-push 10
 Pop y
 push x
 push y
-DIV
-push x
-SUB
-Pop z
-push true
-Pop a
-push false
-Pop b
+Add
+RET 
+PROC main
+CALL sum
+push 20
+push 10
+CALL sum
 push a
-push b
-And
-Pop c
+push a

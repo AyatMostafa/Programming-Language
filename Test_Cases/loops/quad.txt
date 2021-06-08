@@ -1,0 +1,34 @@
+PROC main
+push 0
+Pop i
+push 10
+push i
+compL 
+push i
+INC
+jnz l0 
+Pop b
+jmp l1
+push 0
+Pop x
+push 20
+push x
+compL 
+jnz l2 
+push x
+INC
+jmp l3
+Pop x
+push x
+INC
+push 20
+push x
+compL 
+jnz l4 
+jmp l5
+push x
+push 1
+compEQ 
+jnz l6 
+Pop x
+jmp l6
