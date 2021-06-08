@@ -306,6 +306,7 @@ variable : type identifier ASSIGN expression SEMICOLON
 			}
 			|type identifier ASSIGN func_call_p2 {
 				declare_symbol($2, $1, 0, "", 0);
+				try("POP",$2,"");
 				assign_to_func($2, func_id);
 
 			}
@@ -332,6 +333,7 @@ definition 	: identifier ASSIGN expression SEMICOLON
 				} 
 
 				| identifier ASSIGN func_call_p2 {
+				  try("POP",$1,"");
 				  assign_to_func($1, func_id);
 			}
 				

@@ -12,3 +12,4 @@ push 10
 CALL sum
 push a
 push a
+Pop  a 
