@@ -1,0 +1,12 @@
+{
+ 0 
+}
+{
+ 0.0 
+	 x int 1
+	 y int 1
+	 z int 1
+	 a bool 1
+	 b bool 1
+	 c bool 1
+}

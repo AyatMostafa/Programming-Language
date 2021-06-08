@@ -1,5 +1,2 @@
-push 9
-Pop i
-push INC
-push i
-compL 
+push " "
+Pop a

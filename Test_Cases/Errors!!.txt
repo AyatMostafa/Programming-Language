@@ -1,2 +1,3 @@
-start scope first!
-Error: expecting a closing paranthesis or invalid definition! at line 7 
+Type mismatch while assigning x!
+Warning: Variable x is declared but never used!
+ 

@@ -1,4 +1,2 @@
 push " "
 Pop a
-push a
-Pop x
