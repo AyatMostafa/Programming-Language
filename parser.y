@@ -11,8 +11,9 @@ int yylex();
 #include <stdbool.h>
 #include "SymTable.c"  
 extern int yylineno;   
-#define LN10 2.3025850929940456840179914546844
 
+#define LN10 2.3025850929940456840179914546844
+FILE* errorFile;
 FILE * fp;
 int label=0;
 char*arr[100000];
@@ -34,6 +35,8 @@ char* get_symbol(char* id);
 void unused_symbols();
 char* retType = " ";
 char* gType = " ";
+char* func_id=" ";
+int For_loop = 0;
 int  nops =0;
 char* syntax_error_handler(int);
 %}
@@ -116,8 +119,8 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
-		| end_block		{;}
-		| line end_block	{;}
+		|block				{;}
+		|line block			{;}
 		
 		|if {;}
 		|else {;}
@@ -152,26 +155,27 @@ line	:
 		|typeConversion{;}
 		|line typeConversion{;}
 	;
-
+block: start_block line end_block {;};
 start_block: '{'{
 					level += 1;
 					new_block();
-				 	printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, current->parent->id);
+				 	//printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, current->parent->id);
 				}
 	;
 end_block:	 '}'{
-					if(in_function == 1 && current -> parent -> id == 0) 
+					if(in_function == 1 && current -> parent -> id == 0)
 						in_function = 0; 
 					if (level == 0) yyerror_semantic("start scope first!\n"); 
 					else{
 					int parID;
 					if(current->id == 1)  parID = -1; else parID = current->parent->id;
 				 	level -= 1; unused_symbols(); 
-					current = current -> parent; printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, parID);
+					current = current -> parent; 
+					//printf("id %d , childrenNum %d, parentID %d \n", current->id, current->num_children, parID);
 					}
 				}
 	;
-term	: integer_value {;try("",toArray($1),"");termType="int";}
+term	: integer_value {; printf(toArray($1));try("",toArray($1),"");termType="int";}
 		  | Float_value {; char buf[1000];gcvt($1, 6, buf);try("",buf,"");termType="float";}
 		  | Char_value{;printf('%c',$1);/*try("",ptr,""); termType="char";*/}
 		  | String_value{;try("",$1,""); termType="string";}
@@ -220,9 +224,10 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 				}
 			function_table[node_counter+1] = $2;
 			in_function = 1;
+			func_type = $1;
 		};
 
-func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON '}'
+func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON end_block
  {
 	 if( strcmp(retType, gType) != 0){
 		 yyerror_semantic("return value type does not match the function type");
@@ -231,12 +236,13 @@ func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON '}'
 	 try("RET","",""); 
 	 printf("function\n");
 	 gType=" ";
-	 nops=0;}; 
+	 nops=0;}
+	|func_p1 start_block stmtlist end_block; 
 
 many_identifiers:
 				identifier {
 					if(check_func(get_symbol($1))==0) {
-						//return;
+						return;
 					}
 					else {
 						try("params",$1,"");
@@ -251,10 +257,12 @@ many_identifiers:
 						try("params",$1,"");
 					} 
 				}
-				|;
+				|
+				;
 
 func_call_p1: identifier OPENBRACKET 
 			{	try("CALL",$1,"");
+				func_id=$1;
 				int found = 0;
 				for(int i=0; i<BRANCHFACTOR; i++)
 					if(function_table[i] && strcmp(function_table[i], $1)==0)
@@ -270,6 +278,7 @@ func_call_p1: identifier OPENBRACKET
 						for(int j=0; j<root->num_children; j++)
 							if(root->children[j]->id == i){
 								arg_size = root->children[j] -> num_arguments;
+								indx_arg = 0;
 								func_call_node = j;
 							}
 						}
@@ -301,6 +310,9 @@ variable : type identifier ASSIGN expression SEMICOLON
 				gType = " ";
 				nops = 0;
 			}
+			|type identifier ASSIGN func_call_p2  {
+				assign_to_func(func_id, $2);
+			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
 
 typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
@@ -311,15 +323,21 @@ typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
 
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
-					int r = assign_symbol($1, gType); 
-					if(nops == 1)
-					{
-						try("Single" , $3, "");
-					}		
-					try("POP", $2, ""); 
-					gType = " ";
-					nops = 0;
+					int r = assign_symbol($1, gType);
+					if(r==1){ 
+						if(nops == 1)
+						{
+							try("Single" , $3, "");
+						}		
+						try("POP", $2, ""); 
+						gType = " ";
+						nops = 0;
+					}
 				} 
+				| identifier ASSIGN func_call_p2 {
+				  assign_to_func($1, func_id);
+			}
+				
 			// | identifier ASSIGN identifier SEMICOLON 
 			// 	{
 			// 		char* t = get_symbol($3);
@@ -334,25 +352,25 @@ definition 	: identifier ASSIGN expression SEMICOLON
 logical_exp : identifier comparison_OP term {if(strcmp(get_symbol($1),termType)!=0){yyerror_semantic("Different types of operands \n");}try("",$1,"");};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-if : IF OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  stmtlist end_block
+if : IF OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} block {try("endIf","","");}
 ifExpr : cond | cond IfFiller ifExpr
 cond :  identifier comparison_OP identifier {if(strcmp(get_symbol($1),get_symbol($3))!=0){yyerror_semantic("Different types of operands \n");}try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore 
 bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($2),get_symbol($4))!=0){yyerror_semantic("Different types of operands \n");}try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
 notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($3),get_symbol($5))!=0){yyerror_semantic("Different types of operands \n");}try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
-elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} start_block stmtlist end_block
-else : ELSE start_block stmtlist end_block
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} block {try("endIf","","");}
+else : ELSE block
 
 IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
 switch : SWITCH OPENBRACKET identifier {switchVariableType=get_symbol($3);try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
-cases : DEFAULT COLON stmtlist BREAK SEMICOLON | case cases
-case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON
+cases : DEFAULT COLON stmtlist BREAK SEMICOLON| case cases
+case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON {try("endCase","","");}
 	;
 
 while	: While {try("startWhile","","");} OPENBRACKET ifExpr {try("while","","");} CLOSEBRACKET whileCont1 
-whileCont1: '{'stmtlist'}' {try("endWhile","","");};
+whileCont1: start_block stmtlist end_block {try("endWhile","","");};
 	;
-dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhile","");} CLOSEBRACKET SEMICOLON
+dowhile	: Do_While start_block stmtlist end_block While OPENBRACKET ifExpr {try("while","endWhile","");} CLOSEBRACKET SEMICOLON
 	;
 
 //----------------- mathematical and logical expression -----------
@@ -419,7 +437,9 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
-			| String_value  {	//printf("\ string value %s \n", $$);
+
+			| String_value  {
+
 								if(gType == " ")
 									gType = "string";
 								else if( strcmp("string", gType) != 0){
@@ -428,6 +448,7 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}
+
 			| FALSE         { 	$$ = "false";
 								//printf("\ bool value %s \n", $$);
 								if(gType == " ")
@@ -460,7 +481,9 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 									return;
 								}
 								nops += 1;
-							}	
+							}
+							
+			
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -469,16 +492,19 @@ single_val: term SEMICOLON | '-' term SEMICOLON
 
 //-------------------- FOR Rule ---------------
 
-for :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
+for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","",""); For_loop=1;} 
+
+ start_block stmtlist end_block {try("endforloop","","");For_loop=0;}
 	;
-for_initi_stat :  type identifier ASSIGN term
-			    | identifier ASSIGN term
+for_initi_stat :  variable
+			    | definition
 	;
 
 %%                     /* C code */
 
 int main (int argc, char **argv) {
-	fp = fopen ("quad.txt","w");
+	fp = fopen ("Test_Cases/quad.txt","w");
+	errorFile = fopen ("Test_Cases/Errors!!.txt","w");
 	/* init symbol table */
 	root = malloc(sizeof (node));
 	node_counter = 0;
@@ -489,6 +515,7 @@ int main (int argc, char **argv) {
 	//char* str = read_input_file(argv[1]);
 	//yy_scan_string(str);
 	yyparse ();
+	fclose (errorFile);
 	unused_symbols();
 	print_symbol_table();
 
@@ -603,10 +630,17 @@ void printQuadArgs(char*c, int iter){
 
 void printQuad(){
 	int notCond=0;
+	int notCond_for=0;
 	int endSwitchCond=0;
 	int andLabel=-1;
+	int orLabel=-1;
+	int andLabel_for=-1;
 	int whileCond=0;
+	int forloopCond=0;
+	int orLabel_for=-1;
 	for (int i=0;i<idx;++i){
+		if(arr[i]=="forloop")For_loop=1;
+
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
 			i+=2;
@@ -630,33 +664,55 @@ void printQuad(){
 			fprintf (fp,  arr[i]); fprintf (fp, "\n");
 			i +=2;
 		}
-		else if(arr[i]=="if" || arr[i]=="elseif" || arr[i]=="while"){
-			if(arr[i]=="while" && notCond==0){
-				notCond=1;
-				whileCond=0;
-			}
-			else if(arr[i]=="while" && notCond) {notCond=0;whileCond=0;}
+		else if(arr[i]=="if" || arr[i]=="elseif"){
+			if(notCond)notCond=0;else notCond=1;
 			jmpNewLabel(notCond);
 			notCond=0;
 			andLabel=-1;
+			orLabel=-1;
+		}
+		else if(arr[i]=="while"){
+			if(notCond==0){
+				notCond=1;
+				whileCond=0;
+			}
+			else{notCond=0;whileCond=0;}
+			jmpNewLabel(notCond);
+			notCond=0;
+			andLabel=-1;
+			orLabel=-1;
 		}
 		else if(arr[i]=="startWhile") whileCond=1;
 		else if(arr[i]=="AndAnd")
 		{
 			if(andLabel==-1)andLabel=label++;
-			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",andLabel);
-			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",andLabel+1);
-			else fprintf (fp, "jnz l%d \n",andLabel);
+			if(notCond && whileCond==0) fprintf (fp, "jz l%d \n",label);
+			else if(notCond && whileCond) fprintf (fp, "jz l%d \n",label+1);
+			else fprintf (fp, "jnz l%d \n",label);
 			notCond=0;
+
 		}
 		else if (arr[i]=="OrOr"){
+			if(orLabel==-1)orLabel=label++;
+			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",orLabel);
+			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",orLabel+1);
+			else fprintf (fp, "jz l%d \n",orLabel);
 			if(notCond && whileCond==0) fprintf (fp, "jnz l%d \n",label);
 			else if(notCond && whileCond) fprintf (fp, "jnz l%d \n",label+1);
+		
 			else fprintf (fp, "jz l%d \n",label);
 			notCond=0;
 		}
 		else if(arr[i]=="not"){
 			notCond=1;
+			//for loop
+			notCond_for=1;
+		}
+		else if(arr[i]=="endIf"){
+			fprintf (fp, "jmp l%d\n",label-1);
+		}
+		else if(arr[i]=="endCase"){
+			fprintf (fp, "jmp l%d\n",label-1);
 		}
 		else if(arr[i]=="switch"){
 			fprintf (fp, "push %s\n",arr[i+1]);
@@ -688,14 +744,55 @@ void printQuad(){
 			fprintf (fp, "jmp l%d\n",label);
 			label+=1;
 		}
+		//for loop
+		else if(arr[i]=="forloop"){
+			if(notCond_for==0){
+					notCond_for=1;
+					forloopCond=0;
+				}
+			else{notCond_for=0;forloopCond=0;}
+			jmpNewLabel(notCond_for);
+			notCond_for=0;
+			andLabel_for=-1;
+			orLabel_for=-1;
+		}
+		else if(arr[i]=="endforloop"){
+			fprintf (fp, "jmp l%d\n",label);
+			label+=1;
+		}
+		//for loop 
+		else if(For_loop&&arr[i]=="AndAnd")
+		{
+			//for loop 
+			if(andLabel_for==-1)andLabel_for=label++;
+			if(notCond_for && forloopCond==0) fprintf (fp, "jz l%d \n",andLabel_for);
+			else if(notCond_for && forloopCond) fprintf (fp, "jz l%d \n",andLabel_for+1);
+			else fprintf (fp, "jnz l%d \n",andLabel_for);
+			notCond_for=0;
+		}
+		// for loop 
+		else if (For_loop&&arr[i]=="OrOr"){
+			//for loop 		
+			if(orLabel_for==-1)orLabel_for=label++;
+			if(notCond_for && forloopCond==0) fprintf (fp, "jnz l%d \n",orLabel_for);
+			else if(notCond_for && forloopCond) fprintf (fp, "jnz l%d \n",orLabel_for+1);
+			else fprintf (fp, "jz l%d \n",orLabel_for);
+			if(notCond_for && forloopCond==0) fprintf (fp, "jnz l%d \n",label);
+			else if(notCond_for && forloopCond) fprintf (fp, "jnz l%d \n",label+1);
 		
+			else fprintf (fp, "jz l%d \n",label);
+			notCond_for=0;
+		
+		}	
 		else if(arr[i]=="type_conv"){
 			fprintf (fp, "CONV %s\n",arr[i+1]);
 			i+=1;
 		}
-	
+		
+		
 	}
 }
+
 
 try(char*operation,char* arg1, char*arg2){
 	if (operation != ""){
@@ -710,55 +807,32 @@ try(char*operation,char* arg1, char*arg2){
 }
 
 void yyerror (char *s) {
-	fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	//fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	//fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	fprintf(stderr, s);
 }
 void yyerror_semantic(char *s) {
 	fprintf(stderr, s);
+	fprintf(errorFile, s);
 }
 
-char * toArray(int number)
-{
-    int n = log10(number) + 1;
-    int i;
-    char *numberArray = calloc(n, sizeof(char));
-    for (i = n-1; i >= 0; --i, number /= 10)
-    {
-        numberArray[i] = (number % 10) + '0';
-    }
-    return numberArray;
+
+char* toArray(int number){
+	char text[20]; 
+	sprintf(text, "%d", number);   
+	return strdup(text);
 }
 
-double ln(double x)
-{
-    double old_sum = 0.0;
-    double xmlxpl = (x - 1) / (x + 1);
-    double xmlxpl_2 = xmlxpl * xmlxpl;
-    double denom = 1.0;
-    double frac = xmlxpl;
-    double term = frac;                 // denom start from 1.0
-    double sum = term;
 
-    while ( sum != old_sum )
-    {
-        old_sum = sum;
-        denom += 2.0;
-        frac *= xmlxpl_2;
-        sum += frac / denom;
-    }
-    return 2.0 * sum;
-}
-
-double log10( double x ) {
-    return ln(x) / LN10;    
-}
 
 char* syntax_error_handler(int err){
-	printf("yycahr value is %d %s", err, " ");
+	//printf("yycahr value is %d %s", err, " ");
 	switch(err){
 		case 258: case 290: return "expecting a ';'!";
 		case 270: case 123: return "expecting a closing paranthesis or invalid definition!";
 		case 273: return "expecting an opening block {!";
 		case 274: return "expecting a logical expression!";
+		case 287: return "Invalid identifier name!";
 		case -2: case 275: return "Mis-spelling or keyword fault!"; 
 		default: return "";
 	}

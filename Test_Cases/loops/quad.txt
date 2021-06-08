@@ -1,0 +1,29 @@
+push 0
+Pop x
+push 20
+push x
+compL 
+jnz l0 
+push x
+push 1
+Add
+Pop x
+jmp l1
+push 0
+Pop x
+push x
+push 1
+Add
+Pop x
+push 20
+push x
+compL 
+jnz l2 
+jmp l3
+push x
+push 1
+compEQ 
+jnz l4 
+push 10
+Pop x
+jmp l4

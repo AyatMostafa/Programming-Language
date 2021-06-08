@@ -8,7 +8,9 @@ char* cur_func_args[FUNC_Args];
 char* cur_func_names[FUNC_Args];
 int cur_func_args_num = 0;
 int arg_size = -2;
+int indx_arg = 0;
 int func_call_node = -1;
+char* func_type = "";
 typedef struct symbol{
 	char* symbol_id;
 	char* type;
@@ -25,6 +27,7 @@ typedef struct node{
 
 	// in case of function only
 	int num_arguments;
+	char* return_type;
 	char* argumet_types[FUNC_Args];
 	char* argumet_names[FUNC_Args];
 } node;
@@ -41,6 +44,8 @@ void new_block(){
 	current->children[current->num_children] -> parent = current;
 	if(in_function == 1){
 		current->children[current->num_children] -> num_arguments = cur_func_args_num;
+		current->children[current->num_children] -> return_type = func_type;
+		//printf("jhj %s", current->children[current->num_children] -> return_type);
 		for (int i=0; i< cur_func_args_num; i++){
 			current->children[current->num_children] -> argumet_types[i] = cur_func_args[i];
 			current->children[current->num_children] -> argumet_names[i] = cur_func_names[i];
@@ -121,8 +126,10 @@ int assign_symbol(char* id, char* data_type){
 		return 0;
 	}
 	else if(strcmp(symbol_node->symbols[*index].type, data_type)!= 0){
+		if(strcmp(data_type, "None") == 0)
+			return 0;
 		char Output[MAX_STR_LEN];
-		sprintf(Output, "%s%s%S", "Type mismatch while assigning ", id, "!\n");
+		sprintf(Output, "%s%s%s", "Type mismatch while assigning ", id, "!\n");
 		yyerror_semantic(Output);
 		return 0;
 	}
@@ -130,6 +137,36 @@ int assign_symbol(char* id, char* data_type){
 		symbol_node->symbols[*index].initialized = 1;
 		return 1;
 	}
+}
+int assign_to_func(char* id, char* func_id){
+	int* index = (int*) malloc (sizeof(int));
+	node* symbol_node = find_symbol(id, index);
+	if (symbol_node == NULL){
+		char Output[MAX_STR_LEN];
+		sprintf(Output, "%s%s%s", "Undeclared Identifier ", id, "!\n");
+		yyerror_semantic(Output);
+		return 0;
+	}
+	else if(symbol_node->symbols[*index].isConst == 1){
+		char Output[MAX_STR_LEN];
+		sprintf(Output, "%s%s%s", "Constant identifier ", id, " can't be re-assigned!\n");
+		yyerror_semantic(Output);
+		return 0;
+	}
+	for(int i=0; i<BRANCHFACTOR; i++)
+		if(function_table[i] && strcmp(function_table[i], func_id)==0)
+			for(int j=0; j<root->num_children; j++)
+				if(root->children[j]->id == i){
+					char* fType = root->children[j] -> return_type;
+					if(strcmp(symbol_node->symbols[*index].type, fType)!= 0){;
+					char Output[MAX_STR_LEN];
+					sprintf(Output, "%s%s%s", "Type mismatch while assigning ", id, " to function!\n");
+					yyerror_semantic(Output);
+					return 0;
+					}
+					symbol_node->symbols[*index].initialized = 1;
+					return 1;
+				}
 }
 char* get_symbol(char* id){
 	if(in_function){
@@ -158,8 +195,11 @@ char* get_symbol(char* id){
 }
 void unused_symbols(){
 	for (int i=0; i<current->num_symbols; i++){
-		if (current->symbols[i].initialized != 1)
-			printf("Warning: Variable %s is declared but never used!\n", current->symbols[i].symbol_id);
+		if (current->symbols[i].initialized != 1){
+			char Output[MAX_STR_LEN];
+			sprintf(Output, "%s%s%s", "Warning: Variable ", current->symbols[i].symbol_id, " is declared but never used!\n ");
+			yyerror_semantic(Output);
+		}
 	}
 }
 int type_conversion(char* id, char* new_type){
@@ -190,25 +230,25 @@ void traverse_node(node* Node, FILE* fp, char* seq){
 }
 void print_symbol_table(){
 	FILE * fp;
-   	fp = fopen ("symbol_table.txt","w");
+   	fp = fopen ("Test_Cases/symbol_table.txt","w");
 	traverse_node(root, fp, "0");	
    	fclose (fp);
 }
 
 int check_func(char* type){
-	if(arg_size <= 0){
+	if(indx_arg >= arg_size && arg_size != 0){
 	 	yyerror_semantic("Too much arguments!\n");
 		return 0;
 	}
-	if(strcmp(root->children[func_call_node]->argumet_types[arg_size-1], type) != 0){
+	if(strcmp(root->children[func_call_node]->argumet_types[indx_arg], type) != 0){
 	  	yyerror_semantic("Invalid argument list!\n");
 	  	return 0;
 	}
-	arg_size -= 1;
+	indx_arg += 1;
 	return 1;
 }
 void func_call_handler(){
-	if(arg_size != 0){
+	if(indx_arg < arg_size-1){
 		yyerror_semantic("Missing another argument(s)!\n");
 		return;
 		}
