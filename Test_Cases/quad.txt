@@ -1,2 +1,2 @@
-push 0
-Pop x
+push " "
+Pop a

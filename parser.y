@@ -11,9 +11,9 @@ int yylex();
 #include <stdbool.h>
 #include "SymTable.c"  
 extern int yylineno;   
+
 #define LN10 2.3025850929940456840179914546844
 FILE* errorFile;
-
 FILE * fp;
 int label=0;
 char*arr[100000];
@@ -39,7 +39,7 @@ int  nops =0;
 char* syntax_error_handler(int);
 %}
 
-//%define parse.error verbose
+%define parse.error verbose
 %locations
 %union {int int_num; char id; float float_num; char* string;}         /* Yacc definitions */
 %start line
@@ -117,8 +117,8 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
-		| end_block		{;}
-		| line end_block	{;}
+		|block				{;}
+		|line block			{;}
 		
 		|if {;}
 		|else {;}
@@ -153,7 +153,7 @@ line	:
 		|typeConversion{;}
 		|line typeConversion{;}
 	;
-
+block: start_block line end_block {;};
 start_block: '{'{
 					level += 1;
 					new_block();
@@ -161,7 +161,7 @@ start_block: '{'{
 				}
 	;
 end_block:	 '}'{
-					if(in_function == 1 && current -> parent -> id == 0) 
+					if(in_function == 1 && current -> parent -> id == 0)
 						in_function = 0; 
 					if (level == 0) yyerror_semantic("start scope first!\n"); 
 					else{
@@ -173,7 +173,7 @@ end_block:	 '}'{
 					}
 				}
 	;
-term	: integer_value {;printf(toArray($1));try("",toArray($1),"");termType="int";}
+term	: integer_value {; printf(toArray($1));try("",toArray($1),"");termType="int";}
 		  | Float_value {; char buf[1000];gcvt($1, 6, buf);try("",buf,"");termType="float";}
 		  | Char_value{;printf('%c',$1);/*try("",ptr,""); termType="char";*/}
 		  | String_value{;try("",$1,""); termType="string";}
@@ -222,9 +222,10 @@ func_p1: type identifier OPENBRACKET argList CLOSEBRACKET {try("PROC",$2,"");}
 				}
 			function_table[node_counter+1] = $2;
 			in_function = 1;
+			func_type = $1;
 		};
 
-func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON '}'
+func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON end_block
  {
 	 if( strcmp(retType, gType) != 0){
 		 yyerror_semantic("return value type does not match the function type");
@@ -238,7 +239,7 @@ func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON '}'
 many_identifiers:
 				identifier {
 					if(check_func(get_symbol($1))==0) {
-						//return;
+						return;
 					}
 					else {
 						try("params",$1,"");
@@ -272,6 +273,7 @@ func_call_p1: identifier OPENBRACKET
 						for(int j=0; j<root->num_children; j++)
 							if(root->children[j]->id == i){
 								arg_size = root->children[j] -> num_arguments;
+								indx_arg = 0;
 								func_call_node = j;
 							}
 						}
@@ -313,15 +315,16 @@ typeConversion: type OPENBRACKET identifier CLOSEBRACKET SEMICOLON {
 
 definition 	: identifier ASSIGN expression SEMICOLON 
 				{
-					int r = assign_symbol($1, gType); 
-					printf("tmam");
-					if(nops == 1)
-					{
-						try("Single" , $3, "");
-					}		
-					try("POP", $2, ""); 
-					gType = " ";
-					nops = 0;
+					int r = assign_symbol($1, gType);
+					if(r==1){ 
+						if(nops == 1)
+						{
+							try("Single" , $3, "");
+						}		
+						try("POP", $2, ""); 
+						gType = " ";
+						nops = 0;
+					}
 				} 
 			// | identifier ASSIGN identifier SEMICOLON 
 			// 	{
@@ -337,25 +340,25 @@ definition 	: identifier ASSIGN expression SEMICOLON
 logical_exp : identifier comparison_OP term {if(strcmp(get_symbol($1),termType)!=0){yyerror_semantic("Different types of operands \n");}try("",$1,"");};
 comparison_OP : GE {try("GE","","");} | LE {try("LE","","");} | G {try("G","","");} | L {try("L","","");} | EE {try("EE","","");} | NE {try("NE","","");}
 
-if : IF OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} start_block  stmtlist end_block
+if : IF OPENBRACKET ifExpr CLOSEBRACKET {try("if","","");} block
 ifExpr : cond | cond IfFiller ifExpr
 cond :  identifier comparison_OP identifier {if(strcmp(get_symbol($1),get_symbol($3))!=0){yyerror_semantic("Different types of operands \n");}try("",$1,$3);} | logical_exp | term | identifier |  bracketBeforeAndAfter | notBefore 
 bracketBeforeAndAfter : OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($2),get_symbol($4))!=0){yyerror_semantic("Different types of operands \n");}try("",$2,$4);}| OPENBRACKET logical_exp CLOSEBRACKET | OPENBRACKET term CLOSEBRACKET | OPENBRACKET identifier CLOSEBRACKET {try("",$2,"");}| OPENBRACKET ifExpr CLOSEBRACKET 
 notBefore : NOT OPENBRACKET identifier comparison_OP identifier CLOSEBRACKET {if(strcmp(get_symbol($3),get_symbol($5))!=0){yyerror_semantic("Different types of operands \n");}try($3,$5,"not");}| NOT OPENBRACKET logical_exp CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET term CLOSEBRACKET {try("not","","");} | NOT OPENBRACKET identifier CLOSEBRACKET {try("not",$3,"");}| NOT OPENBRACKET ifExpr CLOSEBRACKET {try("not","","");}
-elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} start_block stmtlist end_block
-else : ELSE start_block stmtlist end_block
+elseIf : ELSE IF OPENBRACKET ifExpr CLOSEBRACKET {try("elseif","","");} block
+else : ELSE block
 
 IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
 switch : SWITCH OPENBRACKET identifier {switchVariableType=get_symbol($3);try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
-cases : DEFAULT COLON stmtlist BREAK SEMICOLON | case cases
+cases : DEFAULT COLON stmtlist BREAK SEMICOLON| case cases
 case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON
 	;
 
 while	: While {try("startWhile","","");} OPENBRACKET ifExpr {try("while","","");} CLOSEBRACKET whileCont1 
-whileCont1: '{'stmtlist'}' {try("endWhile","","");};
+whileCont1: start_block stmtlist end_block {try("endWhile","","");};
 	;
-dowhile	: Do_While '{'stmtlist'}' While OPENBRACKET ifExpr {try("while","endWhile","");} CLOSEBRACKET SEMICOLON
+dowhile	: Do_While start_block stmtlist end_block While OPENBRACKET ifExpr {try("while","endWhile","");} CLOSEBRACKET SEMICOLON
 	;
 
 //----------------- mathematical and logical expression -----------
@@ -494,8 +497,8 @@ int main (int argc, char **argv) {
 	root-> num_children = 0;
 	root-> num_symbols = 0;
 	current = root;
-	//char* str = read_input_file(argv[1]);
-	//yy_scan_string(str);
+	char* str = read_input_file(argv[1]);
+	yy_scan_string(str);
 	yyparse ();
 	fclose (errorFile);
 	unused_symbols();
@@ -719,8 +722,9 @@ try(char*operation,char* arg1, char*arg2){
 }
 
 void yyerror (char *s) {
-	fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
-	fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	//fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	//fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	fprintf(stderr, s);
 }
 void yyerror_semantic(char *s) {
 	fprintf(stderr, s);
@@ -737,12 +741,13 @@ char* toArray(int number){
 
 
 char* syntax_error_handler(int err){
-	printf("yycahr value is %d %s", err, " ");
+	//printf("yycahr value is %d %s", err, " ");
 	switch(err){
 		case 258: case 290: return "expecting a ';'!";
 		case 270: case 123: return "expecting a closing paranthesis or invalid definition!";
 		case 273: return "expecting an opening block {!";
 		case 274: return "expecting a logical expression!";
+		case 287: return "Invalid identifier name!";
 		case -2: case 275: return "Mis-spelling or keyword fault!"; 
 		default: return "";
 	}

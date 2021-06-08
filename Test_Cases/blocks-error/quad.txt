@@ -1,6 +1,4 @@
+push 10
+Pop x
 push 20
-Pop x
-push 30
 Pop y
-push y
-Pop x

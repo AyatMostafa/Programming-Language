@@ -1,7 +1,7 @@
  {
-    int x = 20;
+    int x = 10;
     {
-      int y = 30;
+      int y = 20;
     }
     x = y;
  }
