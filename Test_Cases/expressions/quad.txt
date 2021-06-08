@@ -1,3 +1,4 @@
+PROC main
 push 0
 Pop x
 push 10

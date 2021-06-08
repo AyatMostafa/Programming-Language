@@ -239,20 +239,14 @@ func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON end_block
 	|func_p1 start_block stmtlist end_block; 
 
 many_identifiers:
-				identifier {
-					if(check_func(get_symbol($1))==0) {
-						return;
-					}
-					else {
+				expression3 {
+					if(check_func(gType)!=0) {
 						try("params",$1,"");
 					}
 					
 				}
-				|identifier COMMA many_identifiers {
-					if(check_func(get_symbol($1))==0){
-						return;
-					}
-					else{
+				|expression3 COMMA many_identifiers {
+					if(check_func(gType)!=0){
 						try("params",$1,"");
 					} 
 				}
@@ -299,7 +293,7 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {
 				nops = 0;
 			}
 variable : type identifier ASSIGN expression SEMICOLON 
-		  	{	
+		  	{
 				declare_symbol($2, $1, 1, gType, 0);
 			  	if(nops == 1)
 				{
@@ -309,8 +303,9 @@ variable : type identifier ASSIGN expression SEMICOLON
 				gType = " ";
 				nops = 0;
 			}
-			|type identifier ASSIGN func_call_p2 SEMICOLON {
-				assign_to_func(func_id, $2);
+			|type identifier ASSIGN func_call_p2 {
+				declare_symbol($2, $1, 0, "", 0);
+				assign_to_func($2, func_id);
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
 
@@ -333,8 +328,8 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						nops = 0;
 					}
 				} 
-				| identifier ASSIGN func_call_p2 SEMICOLON  {
-				  assign_to_func(func_id, $1);
+				| identifier ASSIGN func_call_p2  {
+				  assign_to_func($1, func_id);
 			}
 				
 			// | identifier ASSIGN identifier SEMICOLON 
@@ -512,8 +507,8 @@ int main (int argc, char **argv) {
 	root-> num_children = 0;
 	root-> num_symbols = 0;
 	current = root;
-	//char* str = read_input_file(argv[1]);
-	//yy_scan_string(str);
+	char* str = read_input_file(argv[1]);
+	yy_scan_string(str);
 	yyparse ();
 	fclose (errorFile);
 	unused_symbols();
@@ -766,9 +761,9 @@ try(char*operation,char* arg1, char*arg2){
 }
 
 void yyerror (char *s) {
-	//fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
-	//fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
-	fprintf(stderr, s);
+	fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	//fprintf(stderr, s);
 }
 void yyerror_semantic(char *s) {
 	fprintf(stderr, s);

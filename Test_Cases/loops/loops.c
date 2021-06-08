@@ -1,10 +1,4 @@
 {
-
-  for (int i = 0; i < 10; i++)
-  {
-    int b = 10;
-  }
-
   int x = 0;
 
   while (x < 20)
@@ -22,7 +16,7 @@
   switch (x)
   {
   case 1:
-    x = 10 break;
+    x = 10; break;
 
   default:
     break;
