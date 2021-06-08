@@ -497,7 +497,6 @@ for_initi_stat :  variable
 			    | definition
 	;
 
-
 %%                     /* C code */
 
 int main (int argc, char **argv) {
