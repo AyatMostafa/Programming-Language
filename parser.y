@@ -329,7 +329,7 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						{
 							try("Single" , $3, "");
 						}		
-						try("POP", $2, ""); 
+						try("POP", $1, ""); 
 						gType = " ";
 						nops = 0;
 					}
