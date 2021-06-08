@@ -467,6 +467,9 @@ expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
 								}
 								nops += 1;
 							}	
+			|func_call_p2        {
+
+			}
 	;
 
 single_val: term SEMICOLON | '-' term SEMICOLON
@@ -475,10 +478,12 @@ single_val: term SEMICOLON | '-' term SEMICOLON
 
 //-------------------- FOR Rule ---------------
 
-for :  FOR OPENBRACKET for_initi_stat SEMICOLON expression SEMICOLON expression CLOSEBRACKET {printf("for loop ");} start_block line end_block
+for :  FOR OPENBRACKET for_initi_stat expression SEMICOLON expression CLOSEBRACKET '{' stmtlist '}' {
+	try("forloop","","");
+	} 
 	;
-for_initi_stat :  type identifier ASSIGN term
-			    | identifier ASSIGN term
+for_initi_stat :  variable
+			    | definition
 	;
 
 
@@ -612,9 +617,12 @@ void printQuadArgs(char*c, int iter){
 
 void printQuad(){
 	int notCond=0;
+	int notCond2=0;
 	int endSwitchCond=0;
 	int andLabel=-1;
+	int andLabel2=-1;
 	int whileCond=0;
+	int forloopCond=0;
 	for (int i=0;i<idx;++i){
 		if(arr[i] == "EE" || arr[i] == "NE" || arr[i] == "GE"|| arr[i] == "LE"|| arr[i] == "G"|| arr[i] == "L"){
 			printQuadComp(arr[i],arr[i+1],arr[i+2]);
@@ -702,7 +710,17 @@ void printQuad(){
 			fprintf (fp, "CONV %s\n",arr[i+1]);
 			i+=1;
 		}
-	
+		else if(arr[i]=="forloop"){
+			if(arr[i]=="forloop" && notCond2==0){
+				notCond2=1;
+				forloopCond=0;
+			}
+			else if(arr[i]=="forloop" && notCond2) {notCond2=0;forloopCond=0;}
+			jmpNewLabel(notCond2);
+			notCond2=0;
+			andLabel2=-1;
+		}
+		
 	}
 }
 

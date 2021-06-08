@@ -1,2 +1,5 @@
-push 0
-Pop x
+push 9
+Pop i
+push INC
+push i
+compL 

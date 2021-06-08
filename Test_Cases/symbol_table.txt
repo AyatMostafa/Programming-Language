@@ -1,4 +1,5 @@
 {
  0 
-	 x int 1
+	 i int 1
+	 s int 0
 }

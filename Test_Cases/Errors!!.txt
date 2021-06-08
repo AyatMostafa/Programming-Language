@@ -1,0 +1,2 @@
+start scope first!
+Error: expecting a closing paranthesis or invalid definition! at line 7 
