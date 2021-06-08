@@ -240,20 +240,14 @@ func_p2: func_p1 start_block stmtlist RET expression  SEMICOLON end_block
 	|func_p1 start_block stmtlist end_block; 
 
 many_identifiers:
-				identifier {
-					if(check_func(get_symbol($1))==0) {
-						return;
-					}
-					else {
+				expression3 {
+					if(check_func(gType)!=0) {
 						try("params",$1,"");
 					}
 					
 				}
-				|identifier COMMA many_identifiers {
-					if(check_func(get_symbol($1))==0){
-						return;
-					}
-					else{
+				|expression3 COMMA many_identifiers {
+					if(check_func(gType)!=0){
 						try("params",$1,"");
 					} 
 				}
@@ -300,7 +294,7 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {
 				nops = 0;
 			}
 variable : type identifier ASSIGN expression SEMICOLON 
-		  	{	
+		  	{
 				declare_symbol($2, $1, 1, gType, 0);
 			  	if(nops == 1)
 				{
@@ -310,8 +304,10 @@ variable : type identifier ASSIGN expression SEMICOLON
 				gType = " ";
 				nops = 0;
 			}
-			|type identifier ASSIGN func_call_p2  {
-				assign_to_func(func_id, $2);
+			|type identifier ASSIGN func_call_p2 {
+				declare_symbol($2, $1, 0, "", 0);
+				assign_to_func($2, func_id);
+
 			}
 declaration : type identifier SEMICOLON {declare_symbol($2, $1, 0, "", 0);}
 
@@ -334,6 +330,7 @@ definition 	: identifier ASSIGN expression SEMICOLON
 						nops = 0;
 					}
 				} 
+
 				| identifier ASSIGN func_call_p2 {
 				  assign_to_func($1, func_id);
 			}
@@ -392,10 +389,10 @@ expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, "
 			| expression comparison_OP expression
     ;
 
-expression2:   INC expression3 %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
-			|  expression3 INC %prec SUF_INC   { try("INC", $1, ""); try("", $$, "");} 
-			|  DEC expression3 %prec PRE_DEC   { try("DEC", $2, ""); try("", $$, "");}
-			|  expression3 DEC %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, "");}   
+expression2:   INC expression3 SEMICOLON %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
+			|  expression3 INC  %prec SUF_INC   { try("INC", $1, ""); try("", $$, "");} 
+			|  DEC expression3 SEMICOLON %prec PRE_DEC   { try("DEC", $2, ""); try("", $$, "");}
+			|  expression3 DEC SEMICOLON %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, "");}   
 			|  '!' expression	               {try("NOT", $2, ""); try("", $$, "");}
 			|  '-' expression %prec U_MINUM	   {try("NEG", $2, ""); try("", $$, "");}
 	;
@@ -512,8 +509,8 @@ int main (int argc, char **argv) {
 	root-> num_children = 0;
 	root-> num_symbols = 0;
 	current = root;
-	//char* str = read_input_file(argv[1]);
-	//yy_scan_string(str);
+	char* str = read_input_file(argv[1]);
+	yy_scan_string(str);
 	yyparse ();
 	fclose (errorFile);
 	unused_symbols();
@@ -807,9 +804,9 @@ try(char*operation,char* arg1, char*arg2){
 }
 
 void yyerror (char *s) {
-	//fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
-	//fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
-	fprintf(stderr, s);
+	fprintf (stderr,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	fprintf (errorFile,"Error: %s at line %d %s", syntax_error_handler(yychar), yylineno, "\n");
+	//fprintf(stderr, s);
 }
 void yyerror_semantic(char *s) {
 	fprintf(stderr, s);
@@ -828,7 +825,7 @@ char* toArray(int number){
 char* syntax_error_handler(int err){
 	//printf("yycahr value is %d %s", err, " ");
 	switch(err){
-		case 258: case 290: return "expecting a ';'!";
+		case 258: case 290: case 276: case 125: return "expecting a ';'!";
 		case 270: case 123: return "expecting a closing paranthesis or invalid definition!";
 		case 273: return "expecting an opening block {!";
 		case 274: return "expecting a logical expression!";

@@ -45,7 +45,6 @@ void new_block(){
 	if(in_function == 1){
 		current->children[current->num_children] -> num_arguments = cur_func_args_num;
 		current->children[current->num_children] -> return_type = func_type;
-		//printf("jhj %s", current->children[current->num_children] -> return_type);
 		for (int i=0; i< cur_func_args_num; i++){
 			current->children[current->num_children] -> argumet_types[i] = cur_func_args[i];
 			current->children[current->num_children] -> argumet_names[i] = cur_func_names[i];
@@ -218,6 +217,14 @@ int type_conversion(char* id, char* new_type){
 }
 void traverse_node(node* Node, FILE* fp, char* seq){
 	fprintf(fp, "{\n %s \n", seq);
+	if(Node->return_type && Node->parent->id == 0) {
+		if(strcmp(Node->return_type, "void") == 0)
+			fprintf(fp, "\t Scope of main\n");
+		else
+			fprintf(fp, "\t Scope of a function with return type: %s,  Formal parametres:\n", Node -> return_type);
+		for(int i=0; i<Node->num_arguments; i++)
+			fprintf(fp, "\t %s %s \n", Node->argumet_names[i], Node->argumet_types[i]);
+	}
 	for(int i=0; i < Node->num_symbols; i++){
 		fprintf(fp, "\t %s %s %d\n", Node->symbols[i].symbol_id, Node->symbols[i].type, Node->symbols[i].initialized);
 	}
@@ -249,6 +256,7 @@ int check_func(char* type){
 }
 void func_call_handler(){
 	if(indx_arg < arg_size-1){
+		printf("hjgj %d %d", indx_arg, arg_size);
 		yyerror_semantic("Missing another argument(s)!\n");
 		return;
 		}

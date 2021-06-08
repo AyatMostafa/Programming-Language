@@ -3,6 +3,7 @@
 }
 {
  0.0 
+	 Scope of main
 	 x int 0
 	 a string 1
 }

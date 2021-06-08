@@ -1,0 +1,14 @@
+PROC sum
+Pop x
+Pop y
+push x
+push y
+Add
+RET 
+PROC main
+CALL sum
+push 20
+push 10
+CALL sum
+push a
+push a
