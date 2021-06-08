@@ -1,2 +1,2 @@
-push " "
+push 3
 Pop a
