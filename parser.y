@@ -393,7 +393,7 @@ expression1:     expression '+' expression       {  try("Add", $1, $3); try("", 
 			| expression comparison_OP expression
     ;
 
-expression2:   INC expression3 SEMICOLON %prec PRE_INC    { if(aftEnd == 0) {try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}}
+expression2:   INC expression3 SEMICOLON %prec PRE_INC    { if(aftEnd == 0) {try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}
 								else{
 									temporary[0] = "INC"; temporary[1]= $2; temporary[2]= $$; temporary[3]="POP"; temporary[4]= $2;
 								}} 
