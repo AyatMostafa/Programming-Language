@@ -3,3 +3,7 @@ Error: Mis-spelling or keyword fault! at line 2
 Error: Mis-spelling or keyword fault! at line 3 
 Error: Mis-spelling or keyword fault! at line 4 
 Error: Mis-spelling or keyword fault! at line 5 
+Error: Mis-spelling or keyword fault! at line 6 
+Error: Mis-spelling or keyword fault! at line 7 
+Error: Mis-spelling or keyword fault! at line 8 
+Error: Mis-spelling or keyword fault! at line 9 

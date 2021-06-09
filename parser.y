@@ -103,7 +103,7 @@ char* syntax_error_handler(int);
 %left       SHR SHL
 %left       '-' '+'
 %left       '*' '/' '%'
-%right      '!' '~'
+%right      '!' 
 %right      U_MINUM
 %right      PRE_INC PRE_DEC
 %left       SUF_INC SUF_DEC
@@ -119,32 +119,32 @@ line	:
 		| line dowhile		{;}
 		| start_block		{;}
 		| line start_block	{;}
-		|block				{;}
-		|line block			{;}
+		| block				{;}
+		| line block			{;}
 		
-		|if {;}
-		|else {;}
-		|elseIf {;}
-		|line if {;}
-		|line else {;}
-		|line elseIf {;} 
-		|switch {;}
-		|line switch {;}
+		| if {;}
+		| else {;}
+		| elseIf {;}
+		| line if {;}
+		| line else {;}
+		| line elseIf {;} 
+		| switch {;}
+		| line switch {;}
 		| for {;}
 		| line for {;}
-		| expression {;}
-		| line expression{;}
+		| expression {;}   {gType = " "; nops = 0;}
+		| line expression{;} {gType = " "; nops = 0;}
 		| single_val {;}
 		| line single_val{;}
 		| constant{;}
 		| line constant{;}
-	    | variable{;}
+	     | variable{;}
 		| line variable{;}
-	    | declaration{;}
+	     | declaration{;}
 		| line declaration{;}
-	    | definition{;}
+	     | definition{;}
 		| line definition{;}
-	    | func_p1 {;}
+	     | func_p1 {;}
 		| line func_p1{;}
 		| func_p2 {;}
 		| line func_p2{;}
@@ -152,8 +152,8 @@ line	:
 		| line func_call_p1{;}
 		| func_call_p2{;}
 		| line func_call_p2{;}
-		|typeConversion{;}
-		|line typeConversion{;}
+		| typeConversion{;}
+		| line typeConversion{;}
 	;
 block: start_block line end_block {;};
 start_block: '{'{
@@ -183,8 +183,8 @@ term	: integer_value {; printf(toArray($1));try("",toArray($1),"");termType="int
 		  | TRUE {;try("","true",""); termType="true";}
 	;
 
-type : CHAR
-     | INT
+type :  CHAR
+      | INT
 	 | FLOAT
 	 | STRING
 	 | BOOL
@@ -296,6 +296,7 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {
 variable : type identifier ASSIGN expression SEMICOLON 
 		  	{
 				declare_symbol($2, $1, 1, gType, 0);
+				printf("\ number of operands = %i \n", nops);
 			  	if(nops == 1)
 				{
 					try("Single" , $4, "");
@@ -322,6 +323,7 @@ definition 	: identifier ASSIGN expression SEMICOLON
 				{
 					int r = assign_symbol($1, gType);
 					if(r==1){ 
+						printf("\ number of operands = %i \n", nops);
 						if(nops == 1)
 						{
 							try("Single" , $3, "");
@@ -362,7 +364,7 @@ else : ELSE block
 IfFiller : AndAnd {try("AndAnd","","");}| OrOr {try("OrOr","","");}
 
 switch : SWITCH OPENBRACKET identifier {switchVariableType=get_symbol($3);try("switch",$3,"");} CLOSEBRACKET start_block cases end_block {try("endSwitch","","");}
-cases : DEFAULT COLON stmtlist BREAK SEMICOLON| case cases
+cases : DEFAULT COLON stmtlist BREAK SEMICOLON| case cases  
 case : CASE {try("case","","");} term {if(strcmp(switchVariableType,termType)!=0){yyerror_semantic("Different types of operands \n");}} COLON stmtlist BREAK SEMICOLON {try("endCase","","");}
 	;
 
@@ -376,27 +378,27 @@ dowhile	: Do_While start_block stmtlist end_block While OPENBRACKET ifExpr {try(
 expression: expression1 | expression2 | expression3
 	;
 
-expression1:  expression '+' expression     {  try("Add", $1, $3); try("", $$, ""); }
-			| expression '-' expression     {  try("SUB", $1, $3); try("", $$, ""); }
+expression1:     expression '+' expression       {  try("Add", $1, $3); try("", $$, ""); }
+			| expression '-' expression       {  try("SUB", $1, $3); try("", $$, ""); }
 			| expression '*' expression	    {  try("MUL", $1, $3); try("", $$, ""); }
 			| expression '/' expression	    {  try("DIV", $1, $3); try("", $$, ""); }
 			| expression '%' expression	    {  try("MOD", $1, $3); try("", $$, ""); }
-			| expression SHL expression	    {  try("SHL", $1, $3); try("", $$, "");	}												
-			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, "");	}
+			| expression SHL expression	    {  try("SHL", $1, $3); try("", $$, ""); }												
+			| expression SHR expression	    {  try("SHR", $1, $3); try("", $$, ""); }
 			| expression '&' expression	   
 			| expression '|' expression
 			| expression '^' expression
-			| expression AndAnd expression  {try("And", $1, $3);}
-			| expression OrOr expression    {try("Or", $1, $3);}
+			| expression AndAnd expression    {try("And", $1, $3);}
+			| expression OrOr expression      {try("Or", $1, $3);}
 			| expression comparison_OP expression
     ;
 
-expression2:   INC expression3 SEMICOLON %prec PRE_INC   { try("INC", $2, ""); try("", $$, "");}
-			|  expression3 INC  %prec SUF_INC   { try("INC", $1, ""); try("", $$, "");} 
-			|  DEC expression3 SEMICOLON %prec PRE_DEC   { try("DEC", $2, ""); try("", $$, "");}
-			|  expression3 DEC SEMICOLON %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, "");}   
-			|  '!' expression	               {try("NOT", $2, ""); try("", $$, "");}
-			|  '-' expression %prec U_MINUM	   {try("NEG", $2, ""); try("", $$, "");}
+expression2:   INC expression3 SEMICOLON %prec PRE_INC      { try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}
+			|  expression3 INC  %prec SUF_INC            { try("INC", $1, ""); try("", $$, ""); try("POP", $1, "");} 
+			|  DEC expression3 SEMICOLON %prec PRE_DEC   { try("DEC", $2, ""); try("", $$, ""); try("POP", $2, "");}
+			|  expression3 DEC SEMICOLON %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, ""); try("POP", $1, "");}   
+			|  '!' expression	                         {try("NOT", $2, ""); try("", $$, "");}
+			|  '-' expression %prec U_MINUM	          {try("NEG", $2, ""); try("", $$, "");}
 	;
 
 expression3:  OPENBRACKET expression OPENBRACKET {$$ = $2;}
@@ -491,7 +493,7 @@ single_val: term SEMICOLON | '-' term SEMICOLON
 
 //-------------------- FOR Rule ---------------
 
-for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","",""); For_loop=1;} 
+for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","",""); For_loop=1; gType = " "; nops = 0;} 
 
  start_block stmtlist end_block {try("endforloop","","");For_loop=0;}
 	;
