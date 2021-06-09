@@ -38,6 +38,8 @@ char* gType = " ";
 char* func_id=" ";
 int For_loop = 0;
 int  nops =0;
+int aftEnd = 0;
+char* temporary[5];
 char* syntax_error_handler(int);
 %}
 
@@ -296,7 +298,6 @@ constant : CONST type identifier ASSIGN expression SEMICOLON {
 variable : type identifier ASSIGN expression SEMICOLON 
 		  	{
 				declare_symbol($2, $1, 1, gType, 0);
-				printf("\ number of operands = %i \n", nops);
 			  	if(nops == 1)
 				{
 					try("Single" , $4, "");
@@ -323,7 +324,6 @@ definition 	: identifier ASSIGN expression SEMICOLON
 				{
 					int r = assign_symbol($1, gType);
 					if(r==1){ 
-						printf("\ number of operands = %i \n", nops);
 						if(nops == 1)
 						{
 							try("Single" , $3, "");
@@ -393,8 +393,14 @@ expression1:     expression '+' expression       {  try("Add", $1, $3); try("", 
 			| expression comparison_OP expression
     ;
 
-expression2:   INC expression3 SEMICOLON %prec PRE_INC      { try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}
-			|  expression3 INC  %prec SUF_INC            { try("INC", $1, ""); try("", $$, ""); try("POP", $1, "");} 
+expression2:   INC expression3 SEMICOLON %prec PRE_INC    { if(aftEnd == 0) {try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}}
+								else{
+									temporary[0] = "INC"; temporary[1]= $2; temporary[2]= $$; temporary[3]="POP"; temporary[4]= $2;
+								}} 
+			|  expression3 INC  %prec SUF_INC            { if(aftEnd == 0) {try("INC", $1, ""); try("", $$, ""); try("POP", $1, "");}
+								else{
+									temporary[0] = "INC"; temporary[1]= $1; temporary[2]= $$; temporary[3]="POP"; temporary[4]= $1;
+								}} 
 			|  DEC expression3 SEMICOLON %prec PRE_DEC   { try("DEC", $2, ""); try("", $$, ""); try("POP", $2, "");}
 			|  expression3 DEC SEMICOLON %prec SUF_DEC   {try("DEC", $1, ""); try("", $$, ""); try("POP", $1, "");}   
 			|  '!' expression	                         {try("NOT", $2, ""); try("", $$, "");}
@@ -493,9 +499,9 @@ single_val: term SEMICOLON | '-' term SEMICOLON
 
 //-------------------- FOR Rule ---------------
 
-for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON expression CLOSEBRACKET  {try("forloop","",""); For_loop=1; gType = " "; nops = 0;} 
+for :  FOR OPENBRACKET for_initi_stat ifExpr SEMICOLON { aftEnd =1; } expression CLOSEBRACKET  {try("forloop","",""); For_loop=1; gType = " "; nops = 0;} 
 
- start_block stmtlist end_block {try("endforloop","","");For_loop=0;}
+ start_block stmtlist end_block {try(temporary[0], temporary[1], temporary[2]); try(temporary[3], temporary[4], ""); try("endforloop","","");For_loop=0;}
 	;
 for_initi_stat :  variable
 			    | definition
