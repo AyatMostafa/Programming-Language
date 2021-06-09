@@ -1,3 +1,0 @@
-PROC main
-push 10
-Pop b
