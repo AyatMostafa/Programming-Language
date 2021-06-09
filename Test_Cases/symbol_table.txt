@@ -5,9 +5,14 @@
  0.0 
 	 Scope of main
 	 x int 1
-	 y int 1
-	 z int 1
-	 a bool 1
-	 b bool 1
-	 c bool 1
+	 b int 1
+}
+{
+ 0.0.0 
+}
+{
+ 0.0.1 
+}
+{
+ 0.0.2 
 }

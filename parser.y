@@ -393,10 +393,10 @@ expression1:     expression '+' expression       {  try("Add", $1, $3); try("", 
 			| expression comparison_OP expression
     ;
 
-expression2:   INC expression3 SEMICOLON %prec PRE_INC    { if(aftEnd == 0) {try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}}
+expression2:   INC expression3 SEMICOLON %prec PRE_INC    { if(aftEnd == 0) {try("INC", $2, ""); try("", $$, ""); try("POP", $2, "");}
 								else{
 									temporary[0] = "INC"; temporary[1]= $2; temporary[2]= $$; temporary[3]="POP"; temporary[4]= $2;
-								}} 
+								} }
 			|  expression3 INC  %prec SUF_INC            { if(aftEnd == 0) {try("INC", $1, ""); try("", $$, ""); try("POP", $1, "");}
 								else{
 									temporary[0] = "INC"; temporary[1]= $1; temporary[2]= $$; temporary[3]="POP"; temporary[4]= $1;
@@ -645,6 +645,7 @@ void printQuad(){
 	int whileCond=0;
 	int forloopCond=0;
 	int orLabel_for=-1;
+	int jmpOutLabel=0;
 	for (int i=0;i<idx;++i){
 		if(arr[i]=="forloop")For_loop=1;
 
@@ -672,6 +673,7 @@ void printQuad(){
 			i +=2;
 		}
 		else if(arr[i]=="if" || arr[i]=="elseif"){
+			if(arr[i]=="if")jmpOutLabel++;
 			if(notCond)notCond=0;else notCond=1;
 			jmpNewLabel(notCond);
 			notCond=0;
@@ -716,7 +718,7 @@ void printQuad(){
 			notCond_for=1;
 		}
 		else if(arr[i]=="endIf"){
-			fprintf (fp, "jmp l%d\n",label-1);
+			fprintf (fp, "jmp JOl%d\n",jmpOutLabel);
 		}
 		else if(arr[i]=="endCase"){
 			fprintf (fp, "jmp l%d\n",label-1);

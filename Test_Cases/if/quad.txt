@@ -7,13 +7,13 @@ compEQ
 jnz l0 
 push 10
 Pop b
-jmp l0
+jmp JOl1
 push 5
 push x
 compEQ 
 jnz l1 
 push 5
 Pop b
-jmp l1
+jmp JOl1
 push x
 Pop b

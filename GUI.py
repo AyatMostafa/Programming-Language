@@ -27,7 +27,7 @@ def select_file():
     os.system('flex lexer.l')
     os.system('bison -d parser.y')
     os.system('gcc -w parser.tab.c lex.yy.c -o project')
-    os.system('project ' + filename)
+    os.system('./project ' + filename)
 
 # open button
 open_button = ttk.Button(
