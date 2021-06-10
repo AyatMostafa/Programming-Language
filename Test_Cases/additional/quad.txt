@@ -12,8 +12,7 @@ jmp JOl1
 push b
 push s
 compG 
-jz l2 
-jz l3 
+jz l2  
 push 5
 push c
 compGE 
@@ -42,8 +41,7 @@ jmp JOl3
 push a
 push b
 compG 
-jnz l7 
-jnz l8 
+jnz l7
 push c
 push d
 compEQ 

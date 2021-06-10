@@ -7,12 +7,12 @@ void main()
   int x = 0;
   while (x < 20)
   {
-    ++ x;
+    x=x+1;
   }
   x = 0;
   do
   {
-    ++ x;
+    x=x+1;
   } while (x < 20);
   switch (x)
   {
