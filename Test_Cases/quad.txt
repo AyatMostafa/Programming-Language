@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 PROC main
 push 10
 Pop x
@@ -17,3 +18,21 @@ Pop b
 jmp JOl1
 push x
 Pop b
+=======
+PROC sum
+Pop x
+Pop y
+push x
+push y
+Add
+RET 
+PROC main
+CALL sum
+push 20
+push 10
+Pop a
+CALL sum
+push a
+push a
+Pop a
+>>>>>>> 94526ce94668f657a4d88673d95b71e6ad0c1f7c
