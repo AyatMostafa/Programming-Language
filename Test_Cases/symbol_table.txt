@@ -3,21 +3,16 @@
 }
 {
  0.0 
-	 z int 1
+	 Scope of main
+	 x int 1
+	 b int 1
 }
 {
- 0.1 
-	 z int 1
+ 0.0.0 
 }
 {
- 0.2 
-	 z int 1
+ 0.0.1 
 }
 {
- 0.3 
-	 z int 1
-}
-{
- 0.4 
-	 z int 1
+ 0.0.2 
 }
