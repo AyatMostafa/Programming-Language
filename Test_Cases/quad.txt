@@ -1,53 +1,16 @@
-push c
-push d
-compG 
-jnz l1 
-push 1
-push f
-compL 
-jnz l1 
-push 5
-Pop z
-jmp JOl1
-push b
-push s
-compG 
-jz l2 
-jz l3 
-push 5
-push c
-compGE 
-jnz l3 
-push 5
-Pop z
-jmp JOl1
+PROC sum
+Pop x
+Pop y
+push x
+push y
+Add
+RET 
+PROC main
+CALL sum
+push 20
+push 10
+Pop a
+CALL sum
 push a
-push b
-compEQ 
-jz l4 
-push 5
-Pop z
-jmp JOl2
 push a
-push b
-compG 
-jz l6 
-push c
-push d
-compEQ 
-jnz l6 
-push 5
-Pop z
-jmp JOl3
-push a
-push b
-compG 
-jnz l7 
-jnz l8 
-push c
-push d
-compEQ 
-jnz l8 
-push 5
-Pop z
-jmp JOl4
+Pop a
